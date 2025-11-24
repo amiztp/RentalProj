@@ -1365,10 +1365,254 @@ public class VehicleRentalUI extends JFrame {
             e.printStackTrace();
         }
         
-        // Create and show GUI
+        // Create and show welcome screen first
         SwingUtilities.invokeLater(() -> {
+            WelcomeScreen welcomeScreen = new WelcomeScreen();
+            welcomeScreen.setVisible(true);
+        });
+    }
+}
+
+// New Welcome Screen Class
+class WelcomeScreen extends JFrame {
+    
+    public WelcomeScreen() {
+        setTitle("Drive Smart - Vehicle Rental System");
+        setSize(900, 650);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout());
+        
+        // Main panel
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.insets = new Insets(20, 0, 20, 0);
+        
+        // Logo
+        File logoFile = new File("data/photos/logo.png");
+        if (logoFile.exists()) {
+            ImageIcon logoIcon = new ImageIcon(logoFile.getAbsolutePath());
+            Image logoImg = logoIcon.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+            JLabel logoLabel = new JLabel(new ImageIcon(logoImg));
+            gbc.gridy = 0;
+            mainPanel.add(logoLabel, gbc);
+        } else {
+            // Fallback emoji logo
+            JLabel logoLabel = new JLabel("🚗");
+            logoLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 120));
+            logoLabel.setHorizontalAlignment(JLabel.CENTER);
+            gbc.gridy = 0;
+            mainPanel.add(logoLabel, gbc);
+        }
+        
+        // Welcome title
+        JLabel titleLabel = new JLabel("Welcome to Drive Smart");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleLabel.setForeground(new Color(11, 111, 175));
+        titleLabel.setHorizontalAlignment(JLabel.CENTER);
+        gbc.gridy = 1;
+        mainPanel.add(titleLabel, gbc);
+        
+        // Subtitle
+        JLabel subtitleLabel = new JLabel("Vehicle Rental Management System");
+        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        subtitleLabel.setForeground(new Color(107, 114, 128));
+        subtitleLabel.setHorizontalAlignment(JLabel.CENTER);
+        gbc.gridy = 2;
+        gbc.insets = new Insets(5, 0, 40, 0);
+        mainPanel.add(subtitleLabel, gbc);
+        
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
+        buttonPanel.setBackground(Color.WHITE);
+        
+        // Customer button
+        JButton customerButton = createStyledButton("Customer", new Color(11, 111, 175));
+        customerButton.addActionListener(e -> {
+            dispose();
             VehicleRentalUI frame = new VehicleRentalUI();
             frame.setVisible(true);
         });
+        
+        // Company button
+        JButton companyButton = createStyledButton("Company", new Color(11, 111, 175));
+        companyButton.addActionListener(e -> {
+            showCompanyLogin();
+        });
+        
+        buttonPanel.add(customerButton);
+        buttonPanel.add(companyButton);
+        
+        gbc.gridy = 3;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        mainPanel.add(buttonPanel, gbc);
+        
+        add(mainPanel, BorderLayout.CENTER);
+    }
+    
+    private JButton createStyledButton(String text, Color bgColor) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                
+                g2.dispose();
+                super.paintComponent(g);
+            }
+            
+            @Override
+            protected void paintBorder(Graphics g) {
+                // Custom border painting handled in paintComponent
+            }
+        };
+        
+        button.setText(text);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        button.setBackground(bgColor);
+        button.setForeground(Color.WHITE);
+        button.setPreferredSize(new Dimension(180, 50));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        button.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(new Color(9, 74, 122));
+                button.repaint();
+            }
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(bgColor);
+                button.repaint();
+            }
+            public void mousePressed(MouseEvent e) {
+                button.setBackground(new Color(6, 53, 87));
+                button.repaint();
+            }
+            public void mouseReleased(MouseEvent e) {
+                button.setBackground(new Color(9, 74, 122));
+                button.repaint();
+            }
+        });
+        
+        return button;
+    }
+    
+    private void showCompanyLogin() {
+        JDialog loginDialog = new JDialog(this, "Company Login", true);
+        loginDialog.setSize(800, 550);
+        loginDialog.setLocationRelativeTo(this);
+        loginDialog.setLayout(new BorderLayout());
+        
+        // Main content panel
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
+        contentPanel.setBackground(Color.WHITE);
+        
+        // Title
+        JLabel titleLabel = new JLabel("Company Login");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        titleLabel.setForeground(new Color(11, 111, 175));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contentPanel.add(titleLabel);
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+        
+        // Username field
+        JLabel lblUsername = new JLabel("Username:");
+        lblUsername.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblUsername.setForeground(new Color(34, 40, 49));
+        lblUsername.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        JTextField txtUsername = new JTextField();
+        txtUsername.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtUsername.setBackground(Color.WHITE);
+        txtUsername.setForeground(new Color(34, 40, 49));
+        txtUsername.setMaximumSize(new Dimension(400, 40));
+        txtUsername.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(215, 222, 230), 1),
+            BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+        txtUsername.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        contentPanel.add(lblUsername);
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 8)));
+        contentPanel.add(txtUsername);
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 16)));
+        
+        // Password field
+        JLabel lblPassword = new JLabel("Password:");
+        lblPassword.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblPassword.setForeground(new Color(34, 40, 49));
+        lblPassword.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        JPasswordField txtPassword = new JPasswordField();
+        txtPassword.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtPassword.setBackground(Color.WHITE);
+        txtPassword.setForeground(new Color(34, 40, 49));
+        txtPassword.setMaximumSize(new Dimension(400, 40));
+        txtPassword.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(215, 222, 230), 1),
+            BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+        txtPassword.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        contentPanel.add(lblPassword);
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 8)));
+        contentPanel.add(txtPassword);
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 24)));
+        
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
+        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        JButton loginButton = createStyledButton("Login", new Color(11, 111, 175));
+        loginButton.setPreferredSize(new Dimension(120, 40));
+        
+        JButton cancelButton = createStyledButton("Cancel", new Color(107, 114, 128));
+        cancelButton.setPreferredSize(new Dimension(120, 40));
+        
+        loginButton.addActionListener(e -> {
+            String username = txtUsername.getText().trim();
+            String password = new String(txtPassword.getPassword()).trim();
+            
+            // Verify credentials (default: admin/admin)
+            if (username.equals("admin") && password.equals("admin")) {
+                JOptionPane.showMessageDialog(loginDialog,
+                    "Login Successful!\n\nCompany interface coming soon.",
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+                loginDialog.dispose();
+            } else {
+                JOptionPane.showMessageDialog(loginDialog,
+                    "Invalid username or password.\n\nDefault credentials:\nUsername: admin\nPassword: admin",
+                    "Login Failed",
+                    JOptionPane.ERROR_MESSAGE);
+                txtPassword.setText("");
+                txtUsername.requestFocus();
+            }
+        });
+        
+        cancelButton.addActionListener(e -> loginDialog.dispose());
+        
+        // Add Enter key support
+        txtPassword.addActionListener(e -> loginButton.doClick());
+        
+        buttonPanel.add(loginButton);
+        buttonPanel.add(cancelButton);
+        
+        contentPanel.add(buttonPanel);
+        
+        loginDialog.add(contentPanel, BorderLayout.CENTER);
+        loginDialog.setVisible(true);
     }
 }
