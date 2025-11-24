@@ -1,0 +1,9 @@
+regNumber,color,type,model,numberOfDoors,seatingCapacity,loadCapacity,photoPaths
+CAR-001,White,Car,Corolla,4,,,photos/CAR-001-COROLLA.jpg|photos/CAR-002-COROLLA.jpg
+VAN-100,Blue,Van,Urvan,,8,,photos/VAN-100-side.jpg
+BIKE-777,Red,Bike,CBR,,,,photos/BIKE-777-1.jpg
+LORRY-555,Black,Lorry,FordLorry,,,5000,photos/LORRY-555-1.jpg
+BUS-200,Yellow,Bus,Volvo,,40,,photos/BUS-200-1.jpg
+CAR-002,Silver,Car,Camry,4,,,photos/CAR-002-CAMRY.jpg
+CAR-003,Blue,Car,HondaCivic,4,,,photos/CAR-003-HONDA.jpg
+BIKE-888,Green,Bike,Ninja,,,,photos/BIKE-888-1.jpg
