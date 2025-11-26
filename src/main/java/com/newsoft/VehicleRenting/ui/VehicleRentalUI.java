@@ -11,6 +11,8 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.BufferedWriter;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -568,10 +570,14 @@ public class VehicleRentalUI extends JFrame {
                     List<Vehicle> vehicles = get();
                     tableModel.setRowCount(0);
                     
+                    // Load availability from vehicles.csv
+                    java.util.Map<String, String> availabilityMap = loadAvailabilityFromCSV();
+                    
                     for (Vehicle v : vehicles) {
                         String type = v.getClass().getSimpleName();
                         String model = getVehicleModel(v);
-                        String availability = "Available"; // Default to Available
+                        String regNumber = v.getRegisterNumber();
+                        String availability = availabilityMap.getOrDefault(regNumber, "Available");
                         
                         tableModel.addRow(new Object[]{
                             type,
@@ -589,6 +595,32 @@ public class VehicleRentalUI extends JFrame {
         
         worker.execute();
         loadingDialog.setVisible(true);
+    }
+    
+    private java.util.Map<String, String> loadAvailabilityFromCSV() {
+        java.util.Map<String, String> availabilityMap = new java.util.HashMap<>();
+        
+        try (BufferedReader br = new BufferedReader(new FileReader("Data/vehicles.csv"))) {
+            String line = br.readLine(); // Skip header
+            
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",", -1);
+                
+                if (parts.length >= 9) {
+                    String regNumber = parts[0].trim();
+                    String availability = parts[8].trim();
+                    availabilityMap.put(regNumber, availability.isEmpty() ? "Available" : availability);
+                } else if (parts.length >= 1) {
+                    String regNumber = parts[0].trim();
+                    availabilityMap.put(regNumber, "Available");
+                }
+            }
+        } catch (IOException e) {
+            // If file doesn't exist or error reading, return empty map
+            System.err.println("Error loading availability from CSV: " + e.getMessage());
+        }
+        
+        return availabilityMap;
     }
     
     private String getVehicleModel(Vehicle v) {
@@ -1587,11 +1619,8 @@ class WelcomeScreen extends JFrame {
             
             // Verify credentials (default: admin/admin)
             if (username.equals("admin") && password.equals("admin")) {
-                JOptionPane.showMessageDialog(loginDialog,
-                    "Login Successful!\n\nCompany interface coming soon.",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
                 loginDialog.dispose();
+                showCompanyDashboard();
             } else {
                 JOptionPane.showMessageDialog(loginDialog,
                     "Invalid username or password.\n\nDefault credentials:\nUsername: admin\nPassword: admin",
@@ -1614,5 +1643,741 @@ class WelcomeScreen extends JFrame {
         
         loginDialog.add(contentPanel, BorderLayout.CENTER);
         loginDialog.setVisible(true);
+    }
+    
+    private void showCompanyDashboard() {
+        JFrame dashboardFrame = new JFrame("Drive Smart - Company Dashboard");
+        dashboardFrame.setSize(900, 650);
+        dashboardFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        dashboardFrame.setLocationRelativeTo(this);
+        dashboardFrame.setLayout(new BorderLayout());
+        
+        // Main panel
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.insets = new Insets(20, 0, 20, 0);
+        
+        // Logo
+        File logoFile = new File("data/photos/logo.png");
+        if (logoFile.exists()) {
+            ImageIcon logoIcon = new ImageIcon(logoFile.getAbsolutePath());
+            Image logoImg = logoIcon.getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH);
+            JLabel logoLabel = new JLabel(new ImageIcon(logoImg));
+            gbc.gridy = 0;
+            mainPanel.add(logoLabel, gbc);
+        } else {
+            JLabel logoLabel = new JLabel("🚗");
+            logoLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 100));
+            logoLabel.setHorizontalAlignment(JLabel.CENTER);
+            gbc.gridy = 0;
+            mainPanel.add(logoLabel, gbc);
+        }
+        
+        // Dashboard title
+        JLabel titleLabel = new JLabel("Company Dashboard");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleLabel.setForeground(new Color(11, 111, 175));
+        titleLabel.setHorizontalAlignment(JLabel.CENTER);
+        gbc.gridy = 1;
+        mainPanel.add(titleLabel, gbc);
+        
+        // Subtitle
+        JLabel subtitleLabel = new JLabel("Manage your vehicle rental business");
+        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        subtitleLabel.setForeground(new Color(107, 114, 128));
+        subtitleLabel.setHorizontalAlignment(JLabel.CENTER);
+        gbc.gridy = 2;
+        gbc.insets = new Insets(5, 0, 40, 0);
+        mainPanel.add(subtitleLabel, gbc);
+        
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
+        buttonPanel.setBackground(Color.WHITE);
+        
+        // Payments button
+        JButton paymentsButton = createStyledButton("Payments", new Color(11, 111, 175));
+        paymentsButton.addActionListener(e -> {
+            JOptionPane.showMessageDialog(dashboardFrame,
+                "Payments management interface coming soon!",
+                "Payments",
+                JOptionPane.INFORMATION_MESSAGE);
+        });
+        
+        // Manage Vehicles button
+        JButton manageVehiclesButton = createStyledButton("Manage Vehicles", new Color(11, 111, 175));
+        manageVehiclesButton.addActionListener(e -> {
+            showManageVehiclesInterface(dashboardFrame);
+        });
+        
+        buttonPanel.add(paymentsButton);
+        buttonPanel.add(manageVehiclesButton);
+        
+        gbc.gridy = 3;
+        gbc.insets = new Insets(0, 0, 20, 0);
+        mainPanel.add(buttonPanel, gbc);
+        
+        // Logout button at bottom
+        JButton logoutButton = createStyledButton("Logout", new Color(231, 76, 60));
+        logoutButton.setPreferredSize(new Dimension(150, 40));
+        logoutButton.addActionListener(e -> {
+            dashboardFrame.dispose();
+        });
+        
+        gbc.gridy = 4;
+        gbc.insets = new Insets(20, 0, 0, 0);
+        mainPanel.add(logoutButton, gbc);
+        
+        dashboardFrame.add(mainPanel, BorderLayout.CENTER);
+        dashboardFrame.setVisible(true);
+    }
+    
+    private void showManageVehiclesInterface(JFrame parentFrame) {
+        JFrame manageFrame = new JFrame("Drive Smart - Manage Vehicles");
+        manageFrame.setSize(1000, 600);
+        manageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        manageFrame.setLocationRelativeTo(parentFrame);
+        
+        // Main panel
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        mainPanel.setBackground(new Color(244, 247, 250));
+        
+        // Title panel
+        JPanel titlePanel = new JPanel(new BorderLayout());
+        titlePanel.setBackground(new Color(11, 111, 175));
+        titlePanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        
+        JLabel titleLabel = new JLabel("Vehicle Management");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        titleLabel.setForeground(Color.WHITE);
+        titlePanel.add(titleLabel, BorderLayout.WEST);
+        
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
+        
+        // Create table to display vehicles
+        String[] columnNames = {"Reg Number", "Color", "Type", "Model", "Doors", "Seats", "Load (kg)", "Photos", "Availability"};
+        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 8; // Only Availability column is editable
+            }
+        };
+        
+        JTable vehicleTable = new JTable(tableModel);
+        vehicleTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        vehicleTable.setRowHeight(35);
+        vehicleTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        vehicleTable.setShowGrid(true);
+        vehicleTable.setGridColor(new Color(215, 222, 230));
+        vehicleTable.setBackground(Color.WHITE);
+        vehicleTable.setSelectionBackground(new Color(230, 240, 250));
+        vehicleTable.setSelectionForeground(new Color(34, 40, 49));
+        
+        // Add combo box editor for Availability column
+        String[] availabilityOptions = {"Available", "Booked", "Maintaining"};
+        JComboBox<String> availabilityCombo = new JComboBox<>(availabilityOptions);
+        availabilityCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        vehicleTable.getColumnModel().getColumn(8).setCellEditor(new DefaultCellEditor(availabilityCombo));
+        
+        // Add listener to save changes to CSV when availability is updated
+        tableModel.addTableModelListener(e -> {
+            if (e.getColumn() == 8 && e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
+                int row = e.getFirstRow();
+                String regNumber = (String) tableModel.getValueAt(row, 0);
+                String newAvailability = (String) tableModel.getValueAt(row, 8);
+                updateVehicleAvailabilityInCSV(regNumber, newAvailability);
+            }
+        });
+        
+        // Style table header
+        vehicleTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        vehicleTable.getTableHeader().setBackground(new Color(11, 111, 175));
+        vehicleTable.getTableHeader().setForeground(Color.WHITE);
+        vehicleTable.getTableHeader().setPreferredSize(new Dimension(0, 40));
+        
+        // Load vehicles from CSV
+        List<Object[]> allVehiclesData = new ArrayList<>();
+        loadVehiclesFromCSV(tableModel, allVehiclesData);
+        
+        // Add search functionality to title panel
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        searchPanel.setBackground(new Color(11, 111, 175));
+        
+        JLabel searchLabel = new JLabel("Search:");
+        searchLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchLabel.setForeground(Color.WHITE);
+        searchPanel.add(searchLabel);
+        
+        JTextField searchField = new JTextField(20);
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        searchField.setPreferredSize(new Dimension(250, 32));
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+            BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
+        searchField.setToolTipText("Enter registration number");
+        
+        searchField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                String searchText = searchField.getText().trim().toLowerCase();
+                filterVehicleTable(tableModel, allVehiclesData, searchText);
+            }
+        });
+        
+        searchPanel.add(searchField);
+        titlePanel.add(searchPanel, BorderLayout.EAST);
+        
+        JScrollPane scrollPane = new JScrollPane(vehicleTable);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(215, 222, 230), 1));
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.setBackground(new Color(244, 247, 250));
+        
+        JButton addButton = createStyledButton("Add Vehicle", new Color(34, 197, 94));
+        addButton.setPreferredSize(new Dimension(140, 40));
+        addButton.addActionListener(e -> {
+            showAddVehicleDialog(manageFrame, tableModel, allVehiclesData, searchField);
+        });
+        
+        JButton deleteButton = createStyledButton("Delete", new Color(239, 68, 68));
+        deleteButton.setPreferredSize(new Dimension(120, 40));
+        deleteButton.addActionListener(e -> {
+            int selectedRow = vehicleTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(manageFrame,
+                    "Please select a vehicle to delete.",
+                    "No Selection",
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            String regNumber = (String) tableModel.getValueAt(selectedRow, 0);
+            int confirm = JOptionPane.showConfirmDialog(manageFrame,
+                "Are you sure you want to delete vehicle: " + regNumber + "?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+            
+            if (confirm == JOptionPane.YES_OPTION) {
+                deleteVehicleFromCSV(regNumber);
+                tableModel.removeRow(selectedRow);
+                JOptionPane.showMessageDialog(manageFrame,
+                    "Vehicle deleted successfully!",
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+        
+        JButton refreshButton = createStyledButton("Refresh", new Color(11, 111, 175));
+        refreshButton.setPreferredSize(new Dimension(120, 40));
+        refreshButton.addActionListener(e -> {
+            tableModel.setRowCount(0);
+            allVehiclesData.clear();
+            loadVehiclesFromCSV(tableModel, allVehiclesData);
+            searchField.setText("");
+        });
+        
+        JButton closeButton = createStyledButton("Close", new Color(107, 114, 128));
+        closeButton.setPreferredSize(new Dimension(120, 40));
+        closeButton.addActionListener(e -> manageFrame.dispose());
+        
+        buttonPanel.add(addButton);
+        buttonPanel.add(deleteButton);
+        buttonPanel.add(refreshButton);
+        buttonPanel.add(closeButton);
+        
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        manageFrame.add(mainPanel);
+        manageFrame.setVisible(true);
+    }
+    
+    private void loadVehiclesFromCSV(DefaultTableModel tableModel, List<Object[]> allVehiclesData) {
+        try (BufferedReader br = new BufferedReader(new FileReader("Data/vehicles.csv"))) {
+            String line = br.readLine(); // Skip header
+            
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",", -1);
+                
+                if (parts.length >= 3) {
+                    String regNumber = parts[0].trim();
+                    String color = parts[1].trim();
+                    String type = parts[2].trim();
+                    String model = parts.length > 3 ? parts[3].trim() : "";
+                    String doors = parts.length > 4 ? parts[4].trim() : "";
+                    String seats = parts.length > 5 ? parts[5].trim() : "";
+                    String load = parts.length > 6 ? parts[6].trim() : "";
+                    String photos = parts.length > 7 ? parts[7].trim() : "";
+                    String availability = parts.length > 8 ? parts[8].trim() : "Available";
+                    
+                    // Count photos
+                    int photoCount = photos.isEmpty() ? 0 : photos.split("\\|").length;
+                    String photoInfo = photoCount > 0 ? photoCount + " photo(s)" : "No photos";
+                    
+                    Object[] rowData = new Object[]{
+                        regNumber,
+                        color,
+                        type,
+                        model,
+                        doors.isEmpty() ? "-" : doors,
+                        seats.isEmpty() ? "-" : seats,
+                        load.isEmpty() ? "-" : load,
+                        photoInfo,
+                        availability.isEmpty() ? "Available" : availability
+                    };
+                    
+                    allVehiclesData.add(rowData);
+                    tableModel.addRow(rowData);
+                }
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,
+                "Error loading vehicles from CSV: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void filterVehicleTable(DefaultTableModel tableModel, List<Object[]> allVehiclesData, String searchText) {
+        tableModel.setRowCount(0);
+        
+        if (searchText.isEmpty()) {
+            for (Object[] rowData : allVehiclesData) {
+                tableModel.addRow(rowData);
+            }
+        } else {
+            for (Object[] rowData : allVehiclesData) {
+                String regNumber = ((String) rowData[0]).toLowerCase();
+                if (regNumber.contains(searchText)) {
+                    tableModel.addRow(rowData);
+                }
+            }
+        }
+    }
+    
+    private JTextField createStyledInputField(String placeholder) {
+        JTextField textField = new JTextField(25);
+        textField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        textField.setBackground(Color.WHITE);
+        textField.setForeground(new Color(34, 40, 49));
+        textField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(215, 222, 230), 1),
+            BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+        textField.setCaretColor(new Color(11, 111, 175));
+        textField.setToolTipText(placeholder);
+        
+        textField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent e) {
+                textField.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(0, 176, 216), 2),
+                    BorderFactory.createEmptyBorder(6, 8, 6, 8)
+                ));
+            }
+            
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                textField.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(215, 222, 230), 1),
+                    BorderFactory.createEmptyBorder(6, 8, 6, 8)
+                ));
+            }
+        });
+        
+        return textField;
+    }
+    
+    private void showAddVehicleDialog(JFrame parentFrame, DefaultTableModel tableModel, 
+                                       List<Object[]> allVehiclesData, JTextField searchField) {
+        JDialog dialog = new JDialog(parentFrame, "Add New Vehicle", true);
+        dialog.setSize(600, 550);
+        dialog.setLocationRelativeTo(parentFrame);
+        
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        mainPanel.setBackground(Color.WHITE);
+        
+        // Title
+        JLabel titleLabel = new JLabel("Add New Vehicle");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titleLabel.setForeground(new Color(34, 41, 49));
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
+        
+        // Form panel
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(Color.WHITE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(8, 5, 8, 5);
+        
+        // Registration Number
+        gbc.gridx = 0; gbc.gridy = 0;
+        JLabel regLabel = new JLabel("Registration Number:");
+        regLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        formPanel.add(regLabel, gbc);
+        
+        gbc.gridx = 1;
+        JTextField regField = createStyledInputField("e.g., CAR-004");
+        formPanel.add(regField, gbc);
+        
+        // Color
+        gbc.gridx = 0; gbc.gridy = 1;
+        JLabel colorLabel = new JLabel("Color:");
+        colorLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        formPanel.add(colorLabel, gbc);
+        
+        gbc.gridx = 1;
+        JTextField colorField = createStyledInputField("e.g., White");
+        formPanel.add(colorField, gbc);
+        
+        // Type
+        gbc.gridx = 0; gbc.gridy = 2;
+        JLabel typeLabel = new JLabel("Type:");
+        typeLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        formPanel.add(typeLabel, gbc);
+        
+        gbc.gridx = 1;
+        String[] types = {"Car", "Van", "Bike", "Lorry", "Bus"};
+        JComboBox<String> typeCombo = new JComboBox<>(types);
+        typeCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        typeCombo.setPreferredSize(new Dimension(300, 35));
+        formPanel.add(typeCombo, gbc);
+        
+        // Model
+        gbc.gridx = 0; gbc.gridy = 3;
+        JLabel modelLabel = new JLabel("Model:");
+        modelLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        formPanel.add(modelLabel, gbc);
+        
+        gbc.gridx = 1;
+        JTextField modelField = createStyledInputField("e.g., Toyota Corolla");
+        formPanel.add(modelField, gbc);
+        
+        // Number of Doors (for Car)
+        gbc.gridx = 0; gbc.gridy = 4;
+        JLabel doorsLabel = new JLabel("Number of Doors:");
+        doorsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        formPanel.add(doorsLabel, gbc);
+        
+        gbc.gridx = 1;
+        JTextField doorsField = createStyledInputField("For Cars only");
+        formPanel.add(doorsField, gbc);
+        
+        // Seating Capacity (for Van)
+        gbc.gridx = 0; gbc.gridy = 5;
+        JLabel seatsLabel = new JLabel("Seating Capacity:");
+        seatsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        formPanel.add(seatsLabel, gbc);
+        
+        gbc.gridx = 1;
+        JTextField seatsField = createStyledInputField("For Vans only");
+        formPanel.add(seatsField, gbc);
+        
+        // Load Capacity (for Lorry)
+        gbc.gridx = 0; gbc.gridy = 6;
+        JLabel loadLabel = new JLabel("Load Capacity (kg):");
+        loadLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        formPanel.add(loadLabel, gbc);
+        
+        gbc.gridx = 1;
+        JTextField loadField = createStyledInputField("For Lorries only");
+        formPanel.add(loadField, gbc);
+        
+        // Availability
+        gbc.gridx = 0; gbc.gridy = 7;
+        JLabel availabilityLabel = new JLabel("Availability:");
+        availabilityLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        formPanel.add(availabilityLabel, gbc);
+        
+        gbc.gridx = 1;
+        String[] availabilityOptions = {"Available", "Rented", "Maintenance"};
+        JComboBox<String> availabilityCombo = new JComboBox<>(availabilityOptions);
+        availabilityCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        availabilityCombo.setPreferredSize(new Dimension(300, 35));
+        formPanel.add(availabilityCombo, gbc);
+        
+        // Photos
+        gbc.gridx = 0; gbc.gridy = 8;
+        JLabel photosLabel = new JLabel("Photos:");
+        photosLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        formPanel.add(photosLabel, gbc);
+        
+        gbc.gridx = 1;
+        JPanel photoPanel = new JPanel(new BorderLayout(5, 0));
+        photoPanel.setBackground(Color.WHITE);
+        
+        JTextField photoPathField = new JTextField();
+        photoPathField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        photoPathField.setEditable(false);
+        photoPathField.setBackground(new Color(245, 245, 245));
+        photoPathField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(215, 222, 230), 1),
+            BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+        
+        List<String> selectedPhotoPaths = new ArrayList<>();
+        
+        JButton browseButton = new JButton("Browse");
+        browseButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        browseButton.setBackground(new Color(11, 111, 175));
+        browseButton.setForeground(Color.WHITE);
+        browseButton.setFocusPainted(false);
+        browseButton.setBorderPainted(false);
+        browseButton.setPreferredSize(new Dimension(90, 35));
+        browseButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        browseButton.addActionListener(ev -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setMultiSelectionEnabled(true);
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            
+            // Add image file filters
+            fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
+                @Override
+                public boolean accept(File f) {
+                    if (f.isDirectory()) return true;
+                    String name = f.getName().toLowerCase();
+                    return name.endsWith(".jpg") || name.endsWith(".jpeg") || 
+                           name.endsWith(".png") || name.endsWith(".gif") || 
+                           name.endsWith(".bmp");
+                }
+                
+                @Override
+                public String getDescription() {
+                    return "Image Files (*.jpg, *.jpeg, *.png, *.gif, *.bmp)";
+                }
+            });
+            
+            int result = fileChooser.showOpenDialog(dialog);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File[] files = fileChooser.getSelectedFiles();
+                selectedPhotoPaths.clear();
+                
+                for (File file : files) {
+                    selectedPhotoPaths.add(file.getAbsolutePath());
+                }
+                
+                if (selectedPhotoPaths.size() > 0) {
+                    photoPathField.setText(selectedPhotoPaths.size() + " photo(s) selected");
+                } else {
+                    photoPathField.setText("");
+                }
+            }
+        });
+        
+        photoPanel.add(photoPathField, BorderLayout.CENTER);
+        photoPanel.add(browseButton, BorderLayout.EAST);
+        formPanel.add(photoPanel, gbc);
+        
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+        
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.setBackground(Color.WHITE);
+        
+        JButton saveButton = createStyledButton("Save", new Color(34, 197, 94));
+        saveButton.setPreferredSize(new Dimension(120, 40));
+        saveButton.addActionListener(e -> {
+            String regNumber = regField.getText().trim();
+            String color = colorField.getText().trim();
+            String type = (String) typeCombo.getSelectedItem();
+            String model = modelField.getText().trim();
+            
+            if (regNumber.isEmpty() || color.isEmpty() || model.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog,
+                    "Please fill in all required fields (Registration, Color, Model).",
+                    "Missing Information",
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            String doors = doorsField.getText().trim();
+            String seats = seatsField.getText().trim();
+            String load = loadField.getText().trim();
+            String availability = (String) availabilityCombo.getSelectedItem();
+            
+            // Copy photos to Data/photos directory
+            String photoPathsString = "";
+            if (!selectedPhotoPaths.isEmpty()) {
+                List<String> copiedPaths = copyPhotosToDirectory(selectedPhotoPaths, regNumber);
+                if (!copiedPaths.isEmpty()) {
+                    photoPathsString = String.join("|", copiedPaths);
+                }
+            }
+            
+            addVehicleToCSV(regNumber, color, type, model, doors, seats, load, photoPathsString, availability);
+            tableModel.setRowCount(0);
+            allVehiclesData.clear();
+            loadVehiclesFromCSV(tableModel, allVehiclesData);
+            searchField.setText("");
+            
+            JOptionPane.showMessageDialog(dialog,
+                "Vehicle added successfully!",
+                "Success",
+                JOptionPane.INFORMATION_MESSAGE);
+            dialog.dispose();
+        });
+        
+        JButton cancelButton = createStyledButton("Cancel", new Color(107, 114, 128));
+        cancelButton.setPreferredSize(new Dimension(120, 40));
+        cancelButton.addActionListener(e -> dialog.dispose());
+        
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+        
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        dialog.add(mainPanel);
+        dialog.setVisible(true);
+    }
+    
+    private List<String> copyPhotosToDirectory(List<String> sourcePaths, String regNumber) {
+        List<String> copiedPaths = new ArrayList<>();
+        File photoDir = new File("Data/photos");
+        
+        if (!photoDir.exists()) {
+            photoDir.mkdirs();
+        }
+        
+        for (int i = 0; i < sourcePaths.size(); i++) {
+            try {
+                File sourceFile = new File(sourcePaths.get(i));
+                String extension = "";
+                String fileName = sourceFile.getName();
+                int dotIndex = fileName.lastIndexOf('.');
+                if (dotIndex > 0) {
+                    extension = fileName.substring(dotIndex);
+                }
+                
+                String newFileName = regNumber.replace("-", "_") + "_" + (i + 1) + extension;
+                File destFile = new File(photoDir, newFileName);
+                
+                // Copy file
+                java.nio.file.Files.copy(sourceFile.toPath(), destFile.toPath(), 
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                
+                copiedPaths.add("Data/photos/" + newFileName);
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(null,
+                    "Error copying photo: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.WARNING_MESSAGE);
+            }
+        }
+        
+        return copiedPaths;
+    }
+    
+    private void addVehicleToCSV(String regNumber, String color, String type, String model,
+                                  String doors, String seats, String load, String photoPaths, String availability) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("Data/vehicles.csv", true))) {
+            StringBuilder line = new StringBuilder();
+            line.append(regNumber).append(",");
+            line.append(color).append(",");
+            line.append(type).append(",");
+            line.append(model).append(",");
+            
+            // Add type-specific fields
+            if (type.equals("Car")) {
+                line.append(doors.isEmpty() ? "" : doors).append(",,,");
+            } else if (type.equals("Van")) {
+                line.append(",").append(seats.isEmpty() ? "" : seats).append(",,");
+            } else if (type.equals("Lorry")) {
+                line.append(",,").append(load.isEmpty() ? "" : load).append(",");
+            } else if (type.equals("Bus")) {
+                line.append(",").append(seats.isEmpty() ? "" : seats).append(",,");
+            } else {
+                line.append(",,,");
+            }
+            
+            line.append(photoPaths).append(",");
+            line.append(availability);
+            line.append("\n");
+            bw.write(line.toString());
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,
+                "Error adding vehicle to CSV: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void deleteVehicleFromCSV(String regNumber) {
+        List<String> lines = new ArrayList<>();
+        
+        try (BufferedReader br = new BufferedReader(new FileReader("Data/vehicles.csv"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (!line.startsWith(regNumber + ",")) {
+                    lines.add(line);
+                }
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,
+                "Error reading vehicles CSV: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("Data/vehicles.csv"))) {
+            for (String line : lines) {
+                bw.write(line);
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,
+                "Error deleting vehicle from CSV: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void updateVehicleAvailabilityInCSV(String regNumber, String newAvailability) {
+        List<String> lines = new ArrayList<>();
+        
+        try (BufferedReader br = new BufferedReader(new FileReader("Data/vehicles.csv"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.startsWith(regNumber + ",")) {
+                    String[] parts = line.split(",", -1);
+                    if (parts.length >= 9) {
+                        // Update availability (column 8, index 8)
+                        parts[8] = newAvailability;
+                        line = String.join(",", parts);
+                    } else if (parts.length == 8) {
+                        // Add availability if it doesn't exist
+                        line = line + "," + newAvailability;
+                    }
+                }
+                lines.add(line);
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,
+                "Error reading vehicles CSV: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("Data/vehicles.csv"))) {
+            for (String line : lines) {
+                bw.write(line);
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,
+                "Error updating vehicle availability: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
 }
