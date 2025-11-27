@@ -141,12 +141,15 @@ public class VehicleRentalUI extends JFrame {
         
         JMenu fileMenu = new JMenu("File");
         JMenuItem refreshItem = new JMenuItem("Refresh");
+        JMenuItem searchItem = new JMenuItem("Search Vehicle");
         JMenuItem exitItem = new JMenuItem("Exit");
         
         refreshItem.addActionListener(e -> loadVehicles());
+        searchItem.addActionListener(e -> searchVehicle());
         exitItem.addActionListener(e -> System.exit(0));
         
         fileMenu.add(refreshItem);
+        fileMenu.add(searchItem);
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
         
