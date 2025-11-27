@@ -80,8 +80,37 @@ public class VehicleRentalUI extends JFrame {
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24)); // H1: 24pt Bold
         titleLabel.setForeground(Color.WHITE);
         
+        // Right: Search panel
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        searchPanel.setOpaque(false);
+        
+        JLabel searchLabel = new JLabel("Search:");
+        searchLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchLabel.setForeground(Color.WHITE);
+        searchPanel.add(searchLabel);
+        
+        JTextField headerSearchField = new JTextField(20);
+        headerSearchField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        headerSearchField.setPreferredSize(new Dimension(200, 32));
+        headerSearchField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+            BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
+        headerSearchField.setToolTipText("Search by registration, model, or type");
+        
+        headerSearchField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                String searchText = headerSearchField.getText().trim();
+                performHeaderSearch(searchText);
+            }
+        });
+        
+        searchPanel.add(headerSearchField);
+        
         titlePanel.add(leftTitlePanel, BorderLayout.WEST);
         titlePanel.add(titleLabel, BorderLayout.CENTER);
+        titlePanel.add(searchPanel, BorderLayout.EAST);
         
         mainPanel.add(titlePanel, BorderLayout.NORTH);
         
@@ -332,15 +361,12 @@ public class VehicleRentalUI extends JFrame {
         panel.setBackground(new Color(238, 243, 247)); // Light Muted #EEF3F7
         
         JButton refreshBtn = createPrimaryButton("Refresh List");
-        JButton searchBtn = createSecondaryButton("Search Vehicle");
         JButton exitBtn = createExitButton("Exit");
         
         refreshBtn.addActionListener(e -> loadVehicles());
-        searchBtn.addActionListener(e -> searchVehicle());
         exitBtn.addActionListener(e -> System.exit(0));
         
         panel.add(refreshBtn);
-        panel.add(searchBtn);
         panel.add(exitBtn);
         
         return panel;
@@ -689,6 +715,7 @@ public class VehicleRentalUI extends JFrame {
         
         String model = (String) tableModel.getValueAt(selectedRow, 1);
         String type = (String) tableModel.getValueAt(selectedRow, 0);
+        String availability = (String) tableModel.getValueAt(selectedRow, 2);
         Vehicle vehicle = findVehicleByTypeAndModel(type, model);
         
         if (vehicle == null) return;
@@ -813,9 +840,19 @@ public class VehicleRentalUI extends JFrame {
         buttonPanel.setBackground(Color.WHITE);
         JButton selectButton = createPrimaryButton("Select");
         selectButton.setPreferredSize(new Dimension(140, 40));
-        selectButton.addActionListener(e -> {
-            showCustomerDetailsDialog(vehicle);
-        });
+        
+        // Check availability and disable button if not available
+        if (availability.equalsIgnoreCase("Rented") || availability.equalsIgnoreCase("Maintenance") || 
+            availability.equalsIgnoreCase("Booked") || availability.equalsIgnoreCase("Maintaining")) {
+            selectButton.setEnabled(false);
+            selectButton.setBackground(new Color(180, 180, 180));
+            selectButton.setToolTipText("Vehicle is currently " + availability);
+        } else {
+            selectButton.addActionListener(e -> {
+                showCustomerDetailsDialog(vehicle);
+            });
+        }
+        
         buttonPanel.add(selectButton);
         
         // Create white card for vehicle information section
@@ -1088,6 +1125,39 @@ public class VehicleRentalUI extends JFrame {
                 "Found " + matchingRows.size() + " matching vehicles.\nAll matches have been selected in the table.", 
                 "Search Results", 
                 JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+    
+    private void performHeaderSearch(String searchText) {
+        if (searchText.isEmpty()) {
+            // Show all vehicles if search is empty
+            loadVehicles();
+            return;
+        }
+        
+        String term = searchText.toLowerCase();
+        List<Vehicle> allVehicles = vehicleService.getAllVehicles();
+        java.util.Map<String, String> availabilityMap = loadAvailabilityFromCSV();
+        
+        tableModel.setRowCount(0);
+        
+        for (Vehicle vehicle : allVehicles) {
+            String type = vehicle.getClass().getSimpleName();
+            String model = getVehicleModel(vehicle);
+            String regNumber = vehicle.getRegisterNumber();
+            String availability = availabilityMap.getOrDefault(regNumber, "Available");
+            
+            // Search in registration number, model, and type
+            if (regNumber.toLowerCase().contains(term) || 
+                model.toLowerCase().contains(term) || 
+                type.toLowerCase().contains(term)) {
+                
+                tableModel.addRow(new Object[]{
+                    type,
+                    model,
+                    availability
+                });
+            }
         }
     }
     
@@ -1796,7 +1866,7 @@ class WelcomeScreen extends JFrame {
         // Style table header
         vehicleTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
         vehicleTable.getTableHeader().setBackground(new Color(11, 111, 175));
-        vehicleTable.getTableHeader().setForeground(Color.WHITE);
+        vehicleTable.getTableHeader().setForeground(Color.BLUE);
         vehicleTable.getTableHeader().setPreferredSize(new Dimension(0, 40));
         
         // Load vehicles from CSV
@@ -1998,7 +2068,7 @@ class WelcomeScreen extends JFrame {
     private void showAddVehicleDialog(JFrame parentFrame, DefaultTableModel tableModel, 
                                        List<Object[]> allVehiclesData, JTextField searchField) {
         JDialog dialog = new JDialog(parentFrame, "Add New Vehicle", true);
-        dialog.setSize(600, 550);
+        dialog.setSize(700, 650);
         dialog.setLocationRelativeTo(parentFrame);
         
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
