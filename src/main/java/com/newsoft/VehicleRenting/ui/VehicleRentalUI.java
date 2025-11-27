@@ -141,12 +141,15 @@ public class VehicleRentalUI extends JFrame {
         
         JMenu fileMenu = new JMenu("File");
         JMenuItem refreshItem = new JMenuItem("Refresh");
+        JMenuItem searchItem = new JMenuItem("Search Vehicle");
         JMenuItem exitItem = new JMenuItem("Exit");
         
         refreshItem.addActionListener(e -> loadVehicles());
+        searchItem.addActionListener(e -> searchVehicle());
         exitItem.addActionListener(e -> System.exit(0));
         
         fileMenu.add(refreshItem);
+        fileMenu.add(searchItem);
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
         
@@ -1771,9 +1774,14 @@ class WelcomeScreen extends JFrame {
         // Payments button
         JButton paymentsButton = createStyledButton("Payments", new Color(11, 111, 175));
         paymentsButton.addActionListener(e -> {
+            // TODO: Implement Payments UI functionality
             JOptionPane.showMessageDialog(dashboardFrame,
-                "Payments management interface coming soon!",
-                "Payments",
+                "Payments feature is under development.\n\n" +
+                "This feature will allow you to:\n" +
+                "- View payment history\n" +
+                "- Process new payments\n" +
+                "- Generate invoices",
+                "Payments - Coming Soon",
                 JOptionPane.INFORMATION_MESSAGE);
         });
         
