@@ -1774,9 +1774,14 @@ class WelcomeScreen extends JFrame {
         // Payments button
         JButton paymentsButton = createStyledButton("Payments", new Color(11, 111, 175));
         paymentsButton.addActionListener(e -> {
+            // TODO: Implement Payments UI functionality
             JOptionPane.showMessageDialog(dashboardFrame,
-                "Payments management interface coming soon!",
-                "Payments",
+                "Payments feature is under development.\n\n" +
+                "This feature will allow you to:\n" +
+                "- View payment history\n" +
+                "- Process new payments\n" +
+                "- Generate invoices",
+                "Payments - Coming Soon",
                 JOptionPane.INFORMATION_MESSAGE);
         });
         
