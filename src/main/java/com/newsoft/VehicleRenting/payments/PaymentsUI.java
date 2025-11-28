@@ -136,12 +136,386 @@ public class PaymentsUI {
     }
     
     /**
-     * Shows the payment processing form.
+     * Shows the payment processing form in a new window.
      */
     private void showPaymentForm() {
+        // Show dialog to get NIC and Date first
+        JDialog inputDialog = new JDialog((Frame)null, "Enter Payment Information", true);
+        inputDialog.setSize(550, 500);
+        inputDialog.setLocationRelativeTo(null);
+        
+        JPanel inputPanel = new JPanel(new GridBagLayout());
+        inputPanel.setBorder(BorderFactory.createEmptyBorder(25, 40, 25, 40));
+        inputPanel.setBackground(Color.WHITE);
+        
+        GridBagConstraints gbcDialog = new GridBagConstraints();
+        gbcDialog.insets = new Insets(12, 12, 12, 12);
+        gbcDialog.anchor = GridBagConstraints.WEST;
+        gbcDialog.fill = GridBagConstraints.HORIZONTAL;
+        
+        // Title
+        gbcDialog.gridx = 0;
+        gbcDialog.gridy = 0;
+        gbcDialog.gridwidth = 2;
+        gbcDialog.anchor = GridBagConstraints.CENTER;
+        JLabel lblDialogTitle = new JLabel("Payment Information");
+        lblDialogTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblDialogTitle.setForeground(new Color(11, 111, 175));
+        inputPanel.add(lblDialogTitle, gbcDialog);
+        
+        gbcDialog.gridwidth = 1;
+        gbcDialog.anchor = GridBagConstraints.WEST;
+        gbcDialog.gridy++;
+        
+        // NIC Number
+        gbcDialog.gridx = 0;
+        JLabel lblNICInput = new JLabel("NIC Number:");
+        lblNICInput.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        inputPanel.add(lblNICInput, gbcDialog);
+        
+        gbcDialog.gridx = 1;
+        JTextField txtNICInput = new JTextField(20);
+        txtNICInput.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        txtNICInput.setPreferredSize(new Dimension(250, 40));
+        inputPanel.add(txtNICInput, gbcDialog);
+        
+        gbcDialog.gridy++;
+        
+        // Date
+        gbcDialog.gridx = 0;
+        JLabel lblDateInput = new JLabel("Date:");
+        lblDateInput.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        inputPanel.add(lblDateInput, gbcDialog);
+        
+        gbcDialog.gridx = 1;
+        JTextField txtDateInput = new JTextField(20);
+        txtDateInput.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        txtDateInput.setPreferredSize(new Dimension(250, 40));
+        // Set current date as default
+        txtDateInput.setText(java.time.LocalDate.now().toString());
+        inputPanel.add(txtDateInput, gbcDialog);
+        
+        gbcDialog.gridy++;
+        
+        // Buttons
+        gbcDialog.gridx = 0;
+        gbcDialog.gridwidth = 2;
+        gbcDialog.anchor = GridBagConstraints.CENTER;
+        gbcDialog.insets = new Insets(20, 10, 10, 10);
+        
+        JPanel dialogButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        dialogButtonPanel.setBackground(Color.WHITE);
+        
+        JButton btnProceed = new JButton("Proceed");
+        btnProceed.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        btnProceed.setPreferredSize(new Dimension(140, 45));
+        btnProceed.setBackground(new Color(11, 111, 175));
+        btnProceed.setForeground(Color.WHITE);
+        btnProceed.setFocusPainted(false);
+        btnProceed.setBorderPainted(false);
+        btnProceed.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        JButton btnCancel = new JButton("Cancel");
+        btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        btnCancel.setPreferredSize(new Dimension(140, 45));
+        btnCancel.setBackground(new Color(107, 114, 128));
+        btnCancel.setForeground(Color.WHITE);
+        btnCancel.setFocusPainted(false);
+        btnCancel.setBorderPainted(false);
+        btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        final String[] nicNumber = {null};
+        final String[] date = {null};
+        
+        btnProceed.addActionListener(e -> {
+            String nic = txtNICInput.getText().trim();
+            String dateStr = txtDateInput.getText().trim();
+            
+            if (nic.isEmpty()) {
+                JOptionPane.showMessageDialog(inputDialog, 
+                    "Please enter NIC Number.", 
+                    "Validation Error", 
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            if (dateStr.isEmpty()) {
+                JOptionPane.showMessageDialog(inputDialog, 
+                    "Please enter Date.", 
+                    "Validation Error", 
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            // Load customer data from CSV
+            String[] customerData = loadCustomerData(nic);
+            if (customerData == null) {
+                JOptionPane.showMessageDialog(inputDialog, 
+                    "No customer found with NIC: " + nic + "\nPlease check the NIC number.", 
+                    "Customer Not Found", 
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            nicNumber[0] = nic;
+            date[0] = dateStr;
+            inputDialog.dispose();
+        });
+        
+        btnCancel.addActionListener(e -> inputDialog.dispose());
+        
+        dialogButtonPanel.add(btnProceed);
+        dialogButtonPanel.add(btnCancel);
+        
+        inputPanel.add(dialogButtonPanel, gbcDialog);
+        
+        inputDialog.setContentPane(inputPanel);
+        inputDialog.setVisible(true);
+        
+        // If user cancelled, return
+        if (nicNumber[0] == null) {
+            return;
+        }
+        
+        // Load customer data
+        String[] customerData = loadCustomerData(nicNumber[0]);
+        
+        // Close the parent payment menu dialog
+        Window parentWindow = SwingUtilities.getWindowAncestor(mainPanel);
+        if (parentWindow != null) {
+            parentWindow.dispose();
+        }
+        
+        // Create a new JFrame window for payment processing
+        JFrame paymentFrame = new JFrame("Drive Smart - Payment Processing");
+        paymentFrame.setSize(1000, 650);
+        paymentFrame.setLocationRelativeTo(null);
+        paymentFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        
+        // Initialize components
         initializeComponents();
-        buildPaymentFormUI();
+        
+        // Pre-fill customer data if available
+        if (customerData != null) {
+            txtFullName.setText(customerData[0]);  // Full Name
+            txtNIC.setText(customerData[1]);       // NIC
+            txtPhone.setText(customerData[2]);     // Phone
+            txtAddress.setText(customerData[3]);   // Address
+            txtLicenseNumber.setText(customerData[4]); // License Number
+            txtEmail.setText(customerData[5]);     // Email
+        } else {
+            // Just pre-fill NIC if no customer data found
+            txtNIC.setText(nicNumber[0]);
+        }
+        
+        // Main container with BorderLayout
+        JPanel mainContainer = new JPanel(new BorderLayout(0, 0));
+        mainContainer.setBackground(new Color(244, 247, 250));
+        
+        // Title panel at top
+        JPanel titlePanel = new JPanel(new BorderLayout());
+        titlePanel.setBackground(new Color(11, 111, 175));
+        titlePanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        
+        JLabel lblTitle = new JLabel("Payment Processing");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        lblTitle.setForeground(Color.WHITE);
+        titlePanel.add(lblTitle, BorderLayout.CENTER);
+        
+        mainContainer.add(titlePanel, BorderLayout.NORTH);
+        
+        // Create form panel (left side)
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 20));
+        formPanel.setBackground(new Color(244, 247, 250));
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        int row = 0;
+        
+        // Reset for form fields
+        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(8, 8, 8, 8);
+        
+        // Full Name
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        
+        // Full Name
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        JLabel lblFullName = new JLabel("Full Name:");
+        lblFullName.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        formPanel.add(lblFullName, gbc);
+        
+        gbc.gridx = 1;
+        txtFullName.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtFullName.setPreferredSize(new Dimension(300, 35));
+        formPanel.add(txtFullName, gbc);
+        row++;
+        
+        // NIC Number
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        JLabel lblNIC = new JLabel("NIC Number:");
+        lblNIC.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        formPanel.add(lblNIC, gbc);
+        
+        gbc.gridx = 1;
+        txtNIC.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtNIC.setPreferredSize(new Dimension(300, 35));
+        formPanel.add(txtNIC, gbc);
+        row++;
+        
+        // Phone
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        JLabel lblPhone = new JLabel("Phone:");
+        lblPhone.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        formPanel.add(lblPhone, gbc);
+        
+        gbc.gridx = 1;
+        txtPhone.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtPhone.setPreferredSize(new Dimension(300, 35));
+        formPanel.add(txtPhone, gbc);
+        row++;
+        
+        // Address
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        JLabel lblAddress = new JLabel("Address:");
+        lblAddress.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        formPanel.add(lblAddress, gbc);
+        
+        gbc.gridx = 1;
+        txtAddress.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtAddress.setPreferredSize(new Dimension(300, 35));
+        formPanel.add(txtAddress, gbc);
+        row++;
+        
+        // License Number
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        JLabel lblLicenseNumber = new JLabel("License Number:");
+        lblLicenseNumber.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        formPanel.add(lblLicenseNumber, gbc);
+        
+        gbc.gridx = 1;
+        txtLicenseNumber.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtLicenseNumber.setPreferredSize(new Dimension(300, 35));
+        formPanel.add(txtLicenseNumber, gbc);
+        row++;
+        
+        // Email
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        JLabel lblEmail = new JLabel("Email:");
+        lblEmail.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        formPanel.add(lblEmail, gbc);
+        
+        gbc.gridx = 1;
+        txtEmail.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtEmail.setPreferredSize(new Dimension(300, 35));
+        formPanel.add(txtEmail, gbc);
+        row++;
+        
+        // Amount
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        JLabel lblAmount = new JLabel("Amount:");
+        lblAmount.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        formPanel.add(lblAmount, gbc);
+        
+        gbc.gridx = 1;
+        txtAmount.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtAmount.setPreferredSize(new Dimension(300, 35));
+        formPanel.add(txtAmount, gbc);
+        row++;
+        
+        // Payment Method
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        JLabel lblPaymentMethod = new JLabel("Payment Method:");
+        lblPaymentMethod.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        formPanel.add(lblPaymentMethod, gbc);
+        
+        gbc.gridx = 1;
+        txtPaymentMethod.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtPaymentMethod.setPreferredSize(new Dimension(300, 35));
+        formPanel.add(txtPaymentMethod, gbc);
+        row++;
+        
+        // Submit button
+        gbc.gridx = 0;
+        gbc.gridy = row++;
+        gbc.gridwidth = 2;
+        gbc.insets = new Insets(20, 8, 20, 8);
+        gbc.anchor = GridBagConstraints.CENTER;
+        
+        btnSubmit.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        btnSubmit.setPreferredSize(new Dimension(200, 45));
+        btnSubmit.setBackground(new Color(11, 111, 175));
+        btnSubmit.setForeground(Color.WHITE);
+        btnSubmit.setFocusPainted(false);
+        btnSubmit.setBorderPainted(false);
+        btnSubmit.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        formPanel.add(btnSubmit, gbc);
+        
+        // Create right panel for status
+        JPanel rightPanel = new JPanel(new BorderLayout(0, 10));
+        rightPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 30));
+        rightPanel.setBackground(new Color(244, 247, 250));
+        rightPanel.setPreferredSize(new Dimension(400, 0));
+        
+        JLabel lblStatus = new JLabel("Payment Details");
+        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblStatus.setForeground(new Color(11, 111, 175));
+        rightPanel.add(lblStatus, BorderLayout.NORTH);
+        
+        txtStatus.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtStatus.setBackground(Color.WHITE);
+        txtStatus.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        
+        JScrollPane scrollPane = new JScrollPane(txtStatus);
+        rightPanel.add(scrollPane, BorderLayout.CENTER);
+        
+        // Print Receipt button
+        JButton btnPrintReceipt = new JButton("Print Receipt");
+        btnPrintReceipt.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnPrintReceipt.setPreferredSize(new Dimension(180, 40));
+        btnPrintReceipt.setBackground(new Color(46, 125, 50));
+        btnPrintReceipt.setForeground(Color.WHITE);
+        btnPrintReceipt.setFocusPainted(false);
+        btnPrintReceipt.setBorderPainted(false);
+        btnPrintReceipt.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnPrintReceipt.addActionListener(e -> printReceipt());
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.setBackground(new Color(244, 247, 250));
+        buttonPanel.add(btnPrintReceipt);
+        
+        rightPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        // Add panels to main container
+        mainContainer.add(formPanel, BorderLayout.CENTER);
+        mainContainer.add(rightPanel, BorderLayout.EAST);
+        
+        // Attach listeners
         attachListeners();
+        
+        paymentFrame.setContentPane(mainContainer);
+        paymentFrame.setAlwaysOnTop(true);
+        paymentFrame.setVisible(true);
+        paymentFrame.toFront();
+        paymentFrame.requestFocus();
+        paymentFrame.setAlwaysOnTop(false);
     }
     
     /**
@@ -668,19 +1042,34 @@ public class PaymentsUI {
             
             if (saved) {
                 txtStatus.setText(String.format(
-                    "SUCCESS!\n\n" +
+                    "========================================\n" +
+                    "        DRIVE SMART RENTALS\n" +
+                    "    Vehicle Rental Management System\n" +
+                    "========================================\n\n" +
+                    "           PAYMENT RECEIPT\n\n" +
                     "Payment ID: %s\n" +
+                    "Date: %s\n\n" +
+                    "----------------------------------------\n" +
+                    "CUSTOMER DETAILS\n" +
+                    "----------------------------------------\n" +
                     "Full Name: %s\n" +
                     "NIC: %s\n" +
                     "Phone: %s\n" +
                     "Address: %s\n" +
                     "License Number: %s\n" +
-                    "Email: %s\n" +
-                    "Amount: $%.2f\n" +
-                    "Payment Method: %s\n" +
-                    "Timestamp: %s\n\n" +
-                    "Payment processed and recorded successfully.",
+                    "Email: %s\n\n" +
+                    "----------------------------------------\n" +
+                    "PAYMENT DETAILS\n" +
+                    "----------------------------------------\n" +
+                    "Amount: Rs %.2f\n" +
+                    "Payment Method: %s\n\n" +
+                    "========================================\n" +
+                    "Payment processed and recorded successfully!\n\n" +
+                    "Thank you for choosing Drive Smart Rentals.\n" +
+                    "We appreciate your business!\n" +
+                    "========================================",
                     p.getPaymentId(),
+                    p.getTimestamp(),
                     p.getPayerName(),
                     p.getNic(),
                     p.getPhone(),
@@ -688,8 +1077,7 @@ public class PaymentsUI {
                     p.getLicenseNumber(),
                     p.getEmail(),
                     p.getAmount(),
-                    paymentMethod,
-                    p.getTimestamp()
+                    paymentMethod
                 ));
                 
                 // Clear form after successful payment
@@ -721,6 +1109,100 @@ public class PaymentsUI {
         txtEmail.setText("");
         txtAmount.setText("");
         txtPaymentMethod.setText("");
+    }
+    
+    /**
+     * Loads customer data from Customerdata.csv by NIC number.
+     * 
+     * @param nic the NIC number to search for
+     * @return array of customer data [fullName, nic, phone, address, licenseNumber, email] or null if not found
+     */
+    private String[] loadCustomerData(String nic) {
+        java.io.File csvFile = new java.io.File("Data/Customerdata.csv");
+        
+        if (!csvFile.exists()) {
+            return null;
+        }
+        
+        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(csvFile))) {
+            String line;
+            boolean isFirstLine = true;
+            
+            while ((line = br.readLine()) != null) {
+                // Skip header line
+                if (isFirstLine) {
+                    isFirstLine = false;
+                    continue;
+                }
+                
+                // Skip empty lines
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
+                
+                // Parse CSV row
+                String[] fields = parseCSVLine(line);
+                
+                // CSV format: Full Name,NIC,Phone,Address,License Number,Email,Vehicle Model,Vehicle Registration,Date Time
+                if (fields.length >= 6) {
+                    String csvNic = fields[1].trim();
+                    
+                    // Check if NIC matches
+                    if (csvNic.equalsIgnoreCase(nic)) {
+                        // Return customer data: fullName, nic, phone, address, licenseNumber, email
+                        return new String[] {
+                            fields[0].trim(),  // Full Name
+                            fields[1].trim(),  // NIC
+                            fields[2].trim(),  // Phone
+                            fields[3].trim(),  // Address
+                            fields[4].trim(),  // License Number
+                            fields[5].trim()   // Email
+                        };
+                    }
+                }
+            }
+        } catch (java.io.IOException e) {
+            System.err.println("Error reading customer data: " + e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Prints the payment receipt details.
+     */
+    private void printReceipt() {
+        String receiptText = txtStatus.getText().trim();
+        
+        if (receiptText.isEmpty() || !receiptText.startsWith("SUCCESS")) {
+            JOptionPane.showMessageDialog(null, 
+                "No payment receipt available to print.\nPlease process a payment first.",
+                "Print Receipt", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        try {
+            // Use the text area's print functionality
+            boolean complete = txtStatus.print();
+            
+            if (complete) {
+                JOptionPane.showMessageDialog(null, 
+                    "Receipt sent to printer successfully!",
+                    "Print Receipt", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, 
+                    "Printing was cancelled.",
+                    "Print Receipt", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (java.awt.print.PrinterException ex) {
+            JOptionPane.showMessageDialog(null, 
+                "Error printing receipt: " + ex.getMessage(),
+                "Print Error", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     /**
