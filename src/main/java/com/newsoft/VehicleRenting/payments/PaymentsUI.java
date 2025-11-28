@@ -14,10 +14,13 @@ public class PaymentsUI {
     private JPanel mainPanel;
     
     // Form fields
-    private JTextField txtPayerName;
-    private JTextField txtAmount;
-    private JTextField txtVehicleReg;
+    private JTextField txtFullName;
     private JTextField txtNIC;
+    private JTextField txtPhone;
+    private JTextField txtAddress;
+    private JTextField txtLicenseNumber;
+    private JTextField txtEmail;
+    private JTextField txtAmount;
     private JTextField txtPaymentMethod;
     
     // Action and status
@@ -197,7 +200,7 @@ public class PaymentsUI {
         contentPanel.add(titlePanel, BorderLayout.NORTH);
         
         // Create table to display payments
-        String[] columnNames = {"Payment ID", "Payer Name", "Amount", "Vehicle Reg", "NIC", "Payment Method", "Date"};
+        String[] columnNames = {"Payment ID", "Full Name", "NIC", "Phone", "Address", "License Number", "Email", "Amount", "Payment Method", "Date"};
         javax.swing.table.DefaultTableModel tableModel = new javax.swing.table.DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -238,13 +241,16 @@ public class PaymentsUI {
         paymentsTable.getTableHeader().setReorderingAllowed(false);
         
         // Adjust column widths
-        paymentsTable.getColumnModel().getColumn(0).setPreferredWidth(250); // Payment ID
-        paymentsTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Payer Name
-        paymentsTable.getColumnModel().getColumn(2).setPreferredWidth(100); // Amount
-        paymentsTable.getColumnModel().getColumn(3).setPreferredWidth(120); // Vehicle Reg
-        paymentsTable.getColumnModel().getColumn(4).setPreferredWidth(120); // NIC
-        paymentsTable.getColumnModel().getColumn(5).setPreferredWidth(130); // Payment Method
-        paymentsTable.getColumnModel().getColumn(6).setPreferredWidth(120); // Date
+        paymentsTable.getColumnModel().getColumn(0).setPreferredWidth(100); // Payment ID
+        paymentsTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Full Name
+        paymentsTable.getColumnModel().getColumn(2).setPreferredWidth(120); // NIC
+        paymentsTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Phone
+        paymentsTable.getColumnModel().getColumn(4).setPreferredWidth(150); // Address
+        paymentsTable.getColumnModel().getColumn(5).setPreferredWidth(120); // License Number
+        paymentsTable.getColumnModel().getColumn(6).setPreferredWidth(150); // Email
+        paymentsTable.getColumnModel().getColumn(7).setPreferredWidth(100); // Amount
+        paymentsTable.getColumnModel().getColumn(8).setPreferredWidth(130); // Payment Method
+        paymentsTable.getColumnModel().getColumn(9).setPreferredWidth(100); // Date
         
         JScrollPane scrollPane = new JScrollPane(paymentsTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(215, 222, 230), 1));
@@ -321,16 +327,19 @@ public class PaymentsUI {
                 // Parse CSV row
                 String[] fields = parseCSVLine(line);
                 
-                if (fields.length >= 7) {
-                    // Format: paymentId,payerName,amount,vehicleReg,nic,paymentMethod,timestamp
+                if (fields.length >= 10) {
+                    // Format: paymentId,payerName,nic,phone,address,licenseNumber,email,amount,paymentMethod,timestamp
                     Object[] rowData = new Object[]{
                         fields[0], // Payment ID
-                        fields[1], // Payer Name
-                        "Rs." + fields[2], // Amount in Rupees
-                        fields[3], // Vehicle Reg
-                        fields[4], // NIC
-                        fields[5], // Payment Method
-                        formatDateTime(fields[6]) // Date only
+                        fields[1], // Full Name
+                        fields[2], // NIC
+                        fields[3], // Phone
+                        fields[4], // Address
+                        fields[5], // License Number
+                        fields[6], // Email
+                        "Rs." + fields[7], // Amount in Rupees
+                        fields[8], // Payment Method
+                        formatDateTime(fields[9]) // Date only
                     };
                     tableModel.addRow(rowData);
                     allPaymentsData.add(rowData);
@@ -338,11 +347,11 @@ public class PaymentsUI {
             }
             
             if (tableModel.getRowCount() == 0) {
-                tableModel.addRow(new Object[]{"No payments recorded yet", "", "", "", "", "", ""});
+                tableModel.addRow(new Object[]{"No payments recorded yet", "", "", "", "", "", "", "", "", ""});
             }
             
         } catch (java.io.IOException e) {
-            tableModel.addRow(new Object[]{"Error reading payments: " + e.getMessage(), "", "", "", "", "", ""});
+            tableModel.addRow(new Object[]{"Error reading payments: " + e.getMessage(), "", "", "", "", "", "", "", "", ""});
         }
     }
     
@@ -365,7 +374,7 @@ public class PaymentsUI {
             boolean found = false;
             for (Object[] rowData : allPaymentsData) {
                 String paymentId = rowData[0].toString().toLowerCase();
-                String nic = rowData[4].toString().toLowerCase();
+                String nic = rowData[2].toString().toLowerCase();
                 
                 if (paymentId.contains(searchText) || nic.contains(searchText)) {
                     tableModel.addRow(rowData);
@@ -374,7 +383,7 @@ public class PaymentsUI {
             }
             
             if (!found) {
-                tableModel.addRow(new Object[]{"No matching payments found", "", "", "", "", "", ""});
+                tableModel.addRow(new Object[]{"No matching payments found", "", "", "", "", "", "", "", "", ""});
             }
         }
     }
@@ -431,10 +440,13 @@ public class PaymentsUI {
      */
     private void initializeComponents() {
         // Form fields
-        txtPayerName = new JTextField(20);
-        txtAmount = new JTextField(20);
-        txtVehicleReg = new JTextField(20);
+        txtFullName = new JTextField(20);
         txtNIC = new JTextField(20);
+        txtPhone = new JTextField(20);
+        txtAddress = new JTextField(20);
+        txtLicenseNumber = new JTextField(20);
+        txtEmail = new JTextField(20);
+        txtAmount = new JTextField(20);
         txtPaymentMethod = new JTextField(20);
         
         // Submit button
@@ -476,31 +488,13 @@ public class PaymentsUI {
         gbc.gridwidth = 1;
         gbc.anchor = GridBagConstraints.WEST;
         
-        // Payer Name
+        // Full Name
         gbc.gridx = 0;
         gbc.gridy = row;
-        mainPanel.add(new JLabel("Payer Name:"), gbc);
+        mainPanel.add(new JLabel("Full Name:"), gbc);
         
         gbc.gridx = 1;
-        mainPanel.add(txtPayerName, gbc);
-        row++;
-        
-        // Amount
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        mainPanel.add(new JLabel("Amount:"), gbc);
-        
-        gbc.gridx = 1;
-        mainPanel.add(txtAmount, gbc);
-        row++;
-        
-        // Vehicle Registration
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        mainPanel.add(new JLabel("Vehicle Registration:"), gbc);
-        
-        gbc.gridx = 1;
-        mainPanel.add(txtVehicleReg, gbc);
+        mainPanel.add(txtFullName, gbc);
         row++;
         
         // NIC Number
@@ -510,6 +504,51 @@ public class PaymentsUI {
         
         gbc.gridx = 1;
         mainPanel.add(txtNIC, gbc);
+        row++;
+        
+        // Phone
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        mainPanel.add(new JLabel("Phone:"), gbc);
+        
+        gbc.gridx = 1;
+        mainPanel.add(txtPhone, gbc);
+        row++;
+        
+        // Address
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        mainPanel.add(new JLabel("Address:"), gbc);
+        
+        gbc.gridx = 1;
+        mainPanel.add(txtAddress, gbc);
+        row++;
+        
+        // License Number
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        mainPanel.add(new JLabel("License Number:"), gbc);
+        
+        gbc.gridx = 1;
+        mainPanel.add(txtLicenseNumber, gbc);
+        row++;
+        
+        // Email
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        mainPanel.add(new JLabel("Email:"), gbc);
+        
+        gbc.gridx = 1;
+        mainPanel.add(txtEmail, gbc);
+        row++;
+        
+        // Amount
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        mainPanel.add(new JLabel("Amount:"), gbc);
+        
+        gbc.gridx = 1;
+        mainPanel.add(txtAmount, gbc);
         row++;
         
         // Payment Method
@@ -560,27 +599,45 @@ public class PaymentsUI {
     private void processPayment() {
         try {
             // Validate common fields
-            String payerName = txtPayerName.getText().trim();
-            if (payerName.isEmpty()) {
-                txtStatus.setText("ERROR: Payer name is required.");
-                return;
-            }
-            
-            String amountStr = txtAmount.getText().trim();
-            if (amountStr.isEmpty()) {
-                txtStatus.setText("ERROR: Amount is required.");
-                return;
-            }
-            
-            String vehicleReg = txtVehicleReg.getText().trim();
-            if (vehicleReg.isEmpty()) {
-                txtStatus.setText("ERROR: Vehicle Registration is required.");
+            String fullName = txtFullName.getText().trim();
+            if (fullName.isEmpty()) {
+                txtStatus.setText("ERROR: Full Name is required.");
                 return;
             }
             
             String nic = txtNIC.getText().trim();
             if (nic.isEmpty()) {
                 txtStatus.setText("ERROR: NIC Number is required.");
+                return;
+            }
+            
+            String phone = txtPhone.getText().trim();
+            if (phone.isEmpty()) {
+                txtStatus.setText("ERROR: Phone is required.");
+                return;
+            }
+            
+            String address = txtAddress.getText().trim();
+            if (address.isEmpty()) {
+                txtStatus.setText("ERROR: Address is required.");
+                return;
+            }
+            
+            String licenseNumber = txtLicenseNumber.getText().trim();
+            if (licenseNumber.isEmpty()) {
+                txtStatus.setText("ERROR: License Number is required.");
+                return;
+            }
+            
+            String email = txtEmail.getText().trim();
+            if (email.isEmpty()) {
+                txtStatus.setText("ERROR: Email is required.");
+                return;
+            }
+            
+            String amountStr = txtAmount.getText().trim();
+            if (amountStr.isEmpty()) {
+                txtStatus.setText("ERROR: Amount is required.");
                 return;
             }
             
@@ -603,7 +660,7 @@ public class PaymentsUI {
             }
             
             // Create CashPayment (using abstract Payment type)
-            Payment p = new CashPayment(payerName, amount, vehicleReg, nic, paymentMethod);
+            Payment p = new CashPayment(fullName, amount, "", nic, phone, address, licenseNumber, email, paymentMethod);
             
             // Process payment using polymorphic method
             PaymentManager pm = new PaymentManager();
@@ -613,18 +670,24 @@ public class PaymentsUI {
                 txtStatus.setText(String.format(
                     "SUCCESS!\n\n" +
                     "Payment ID: %s\n" +
-                    "Payer: %s\n" +
-                    "Amount: $%.2f\n" +
-                    "Vehicle Registration: %s\n" +
+                    "Full Name: %s\n" +
                     "NIC: %s\n" +
+                    "Phone: %s\n" +
+                    "Address: %s\n" +
+                    "License Number: %s\n" +
+                    "Email: %s\n" +
+                    "Amount: $%.2f\n" +
                     "Payment Method: %s\n" +
                     "Timestamp: %s\n\n" +
                     "Payment processed and recorded successfully.",
                     p.getPaymentId(),
                     p.getPayerName(),
+                    p.getNic(),
+                    p.getPhone(),
+                    p.getAddress(),
+                    p.getLicenseNumber(),
+                    p.getEmail(),
                     p.getAmount(),
-                    vehicleReg,
-                    nic,
                     paymentMethod,
                     p.getTimestamp()
                 ));
@@ -650,10 +713,13 @@ public class PaymentsUI {
      * Clears the form after successful payment.
      */
     private void clearForm() {
-        txtPayerName.setText("");
-        txtAmount.setText("");
-        txtVehicleReg.setText("");
+        txtFullName.setText("");
         txtNIC.setText("");
+        txtPhone.setText("");
+        txtAddress.setText("");
+        txtLicenseNumber.setText("");
+        txtEmail.setText("");
+        txtAmount.setText("");
         txtPaymentMethod.setText("");
     }
     

@@ -15,11 +15,15 @@ public class CashPayment extends Payment {
      * @param amount the payment amount
      * @param vehicleReg the vehicle registration number
      * @param nic the NIC number
+     * @param phone the phone number
+     * @param address the address
+     * @param licenseNumber the license number
+     * @param email the email address
      * @param paymentMethod the payment method
      * @throws IllegalArgumentException if payerName is invalid or amount is not positive
      */
-    public CashPayment(String payerName, double amount, String vehicleReg, String nic, String paymentMethod) {
-        super(payerName, amount, vehicleReg, nic, paymentMethod);
+    public CashPayment(String payerName, double amount, String vehicleReg, String nic, String phone, String address, String licenseNumber, String email, String paymentMethod) {
+        super(payerName, amount, vehicleReg, nic, phone, address, licenseNumber, email, paymentMethod);
     }
 
     /**
