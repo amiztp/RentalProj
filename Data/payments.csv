@@ -1,3 +1,1 @@
-PAY-00001,kamal,500.00,,,,2025-11-27T17:53:11.157492500
-PAY-00002,saman,2500.00,,,,2025-11-27T18:00:19.430500100
-PAY-00003,saman,100.00,CAR_0000,02155555124,CARD,2025-11-27T18:15:09.148003900
+paymentId,fullName,nic,phone,address,licenseNumber,email,amount,paymentMethod,timestamp

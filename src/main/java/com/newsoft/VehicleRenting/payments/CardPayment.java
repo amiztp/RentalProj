@@ -19,14 +19,18 @@ public class CardPayment extends Payment {
      * @param amount the payment amount
      * @param vehicleReg the vehicle registration number
      * @param nic the NIC number
+     * @param phone the phone number
+     * @param address the address
+     * @param licenseNumber the license number
+     * @param email the email address
      * @param paymentMethod the payment method
      * @param cardHolder the name on the card
      * @param cardNumber the full card number (will be masked)
      * @param expiry the card expiry date
      * @throws IllegalArgumentException if any input is invalid
      */
-    public CardPayment(String payerName, double amount, String vehicleReg, String nic, String paymentMethod, String cardHolder, String cardNumber, String expiry) {
-        super(payerName, amount, vehicleReg, nic, paymentMethod);
+    public CardPayment(String payerName, double amount, String vehicleReg, String nic, String phone, String address, String licenseNumber, String email, String paymentMethod, String cardHolder, String cardNumber, String expiry) {
+        super(payerName, amount, vehicleReg, nic, phone, address, licenseNumber, email, paymentMethod);
         
         // Validate inputs
         if (cardHolder == null || cardHolder.trim().isEmpty()) {
