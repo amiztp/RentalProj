@@ -1774,15 +1774,23 @@ class WelcomeScreen extends JFrame {
         // Payments button
         JButton paymentsButton = createStyledButton("Payments", new Color(11, 111, 175));
         paymentsButton.addActionListener(e -> {
-            // TODO: Implement Payments UI functionality
-            JOptionPane.showMessageDialog(dashboardFrame,
-                "Payments feature is under development.\n\n" +
-                "This feature will allow you to:\n" +
-                "- View payment history\n" +
-                "- Process new payments\n" +
-                "- Generate invoices",
-                "Payments - Coming Soon",
-                JOptionPane.INFORMATION_MESSAGE);
+            // Open Payments UI dialog (embedded panel)
+            try {
+                main.java.com.newsoft.VehicleRenting.payments.PaymentsUI paymentsUI =
+                    new main.java.com.newsoft.VehicleRenting.payments.PaymentsUI();
+
+                JDialog dlg = new JDialog(dashboardFrame, "Payments", true);
+                dlg.setContentPane(paymentsUI.getPaymentPanel());
+                dlg.pack();
+                dlg.setLocationRelativeTo(dashboardFrame);
+                dlg.setVisible(true);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(dashboardFrame,
+                    "Error opening Payments UI: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         });
         
         // Manage Vehicles button
