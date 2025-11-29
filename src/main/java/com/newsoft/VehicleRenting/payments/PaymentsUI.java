@@ -20,6 +20,7 @@ public class PaymentsUI {
     private JTextField txtAddress;
     private JTextField txtLicenseNumber;
     private JTextField txtEmail;
+    private JTextField txtRegNumber;
     private JTextField txtAmount;
     private JTextField txtPaymentMethod;
     
@@ -303,6 +304,10 @@ public class PaymentsUI {
             txtAddress.setText(customerData[3]);   // Address
             txtLicenseNumber.setText(customerData[4]); // License Number
             txtEmail.setText(customerData[5]);     // Email
+            // Safely access registration number if it exists
+            if (customerData.length >= 7) {
+                txtRegNumber.setText(customerData[6]); // Vehicle Registration Number
+            }
         } else {
             // Just pre-fill NIC if no customer data found
             txtNIC.setText(nicNumber[0]);
@@ -354,7 +359,7 @@ public class PaymentsUI {
         
         gbc.gridx = 1;
         txtFullName.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtFullName.setPreferredSize(new Dimension(300, 35));
+        txtFullName.setPreferredSize(new Dimension(1000, 35));
         formPanel.add(txtFullName, gbc);
         row++;
         
@@ -367,7 +372,7 @@ public class PaymentsUI {
         
         gbc.gridx = 1;
         txtNIC.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtNIC.setPreferredSize(new Dimension(300, 35));
+        txtNIC.setPreferredSize(new Dimension(400, 35));
         formPanel.add(txtNIC, gbc);
         row++;
         
@@ -380,7 +385,7 @@ public class PaymentsUI {
         
         gbc.gridx = 1;
         txtPhone.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtPhone.setPreferredSize(new Dimension(300, 35));
+        txtPhone.setPreferredSize(new Dimension(400, 35));
         formPanel.add(txtPhone, gbc);
         row++;
         
@@ -393,7 +398,7 @@ public class PaymentsUI {
         
         gbc.gridx = 1;
         txtAddress.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtAddress.setPreferredSize(new Dimension(300, 35));
+        txtAddress.setPreferredSize(new Dimension(400, 35));
         formPanel.add(txtAddress, gbc);
         row++;
         
@@ -406,7 +411,7 @@ public class PaymentsUI {
         
         gbc.gridx = 1;
         txtLicenseNumber.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtLicenseNumber.setPreferredSize(new Dimension(300, 35));
+        txtLicenseNumber.setPreferredSize(new Dimension(400, 35));
         formPanel.add(txtLicenseNumber, gbc);
         row++;
         
@@ -419,8 +424,23 @@ public class PaymentsUI {
         
         gbc.gridx = 1;
         txtEmail.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtEmail.setPreferredSize(new Dimension(300, 35));
+        txtEmail.setPreferredSize(new Dimension(400, 35));
         formPanel.add(txtEmail, gbc);
+        row++;
+        
+        // Reg Number
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        JLabel lblRegNumber = new JLabel("Reg Number:");
+        lblRegNumber.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        formPanel.add(lblRegNumber, gbc);
+        
+        gbc.gridx = 1;
+        txtRegNumber.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtRegNumber.setPreferredSize(new Dimension(400, 35));
+        txtRegNumber.setEditable(false);
+        txtRegNumber.setBackground(new Color(240, 240, 240));
+        formPanel.add(txtRegNumber, gbc);
         row++;
         
         // Amount
@@ -432,7 +452,7 @@ public class PaymentsUI {
         
         gbc.gridx = 1;
         txtAmount.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtAmount.setPreferredSize(new Dimension(300, 35));
+        txtAmount.setPreferredSize(new Dimension(400, 35));
         formPanel.add(txtAmount, gbc);
         row++;
         
@@ -445,7 +465,7 @@ public class PaymentsUI {
         
         gbc.gridx = 1;
         txtPaymentMethod.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtPaymentMethod.setPreferredSize(new Dimension(300, 35));
+        txtPaymentMethod.setPreferredSize(new Dimension(400, 35));
         formPanel.add(txtPaymentMethod, gbc);
         row++;
         
@@ -820,6 +840,7 @@ public class PaymentsUI {
         txtAddress = new JTextField(20);
         txtLicenseNumber = new JTextField(20);
         txtEmail = new JTextField(20);
+        txtRegNumber = new JTextField(20);
         txtAmount = new JTextField(20);
         txtPaymentMethod = new JTextField(20);
         
@@ -1107,6 +1128,7 @@ public class PaymentsUI {
         txtAddress.setText("");
         txtLicenseNumber.setText("");
         txtEmail.setText("");
+        txtRegNumber.setText("");
         txtAmount.setText("");
         txtPaymentMethod.setText("");
     }
@@ -1149,14 +1171,19 @@ public class PaymentsUI {
                     
                     // Check if NIC matches
                     if (csvNic.equalsIgnoreCase(nic)) {
-                        // Return customer data: fullName, nic, phone, address, licenseNumber, email
+                        // Return customer data: fullName, nic, phone, address, licenseNumber, email, regNumber
+                        String regNumber = "";
+                        if (fields.length >= 8) {
+                            regNumber = fields[7].trim();  // Vehicle Registration Number
+                        }
                         return new String[] {
                             fields[0].trim(),  // Full Name
                             fields[1].trim(),  // NIC
                             fields[2].trim(),  // Phone
                             fields[3].trim(),  // Address
                             fields[4].trim(),  // License Number
-                            fields[5].trim()   // Email
+                            fields[5].trim(),  // Email
+                            regNumber          // Vehicle Registration Number
                         };
                     }
                 }
@@ -1174,7 +1201,7 @@ public class PaymentsUI {
     private void printReceipt() {
         String receiptText = txtStatus.getText().trim();
         
-        if (receiptText.isEmpty() || !receiptText.startsWith("SUCCESS")) {
+        if (receiptText.isEmpty() || !receiptText.contains("PAYMENT RECEIPT")) {
             JOptionPane.showMessageDialog(null, 
                 "No payment receipt available to print.\nPlease process a payment first.",
                 "Print Receipt", 
