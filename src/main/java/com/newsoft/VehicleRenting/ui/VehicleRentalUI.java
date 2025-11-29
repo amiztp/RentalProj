@@ -80,9 +80,36 @@ public class VehicleRentalUI extends JFrame {
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24)); // H1: 24pt Bold
         titleLabel.setForeground(Color.WHITE);
         
-        // Right: Search panel
+        // Right: Search panel and Home button
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         searchPanel.setOpaque(false);
+        
+        // Home button
+        JButton homeButton = new JButton("🏠 Home");
+        homeButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        homeButton.setForeground(Color.WHITE);
+        homeButton.setBackground(new Color(9, 74, 122));
+        homeButton.setPreferredSize(new Dimension(100, 32));
+        homeButton.setFocusPainted(false);
+        homeButton.setBorderPainted(false);
+        homeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        homeButton.setToolTipText("Return to Welcome Screen");
+        homeButton.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                homeButton.setBackground(new Color(6, 53, 87));
+            }
+            public void mouseExited(MouseEvent e) {
+                homeButton.setBackground(new Color(9, 74, 122));
+            }
+        });
+        homeButton.addActionListener(e -> {
+            dispose();
+            SwingUtilities.invokeLater(() -> {
+                WelcomeScreen welcomeScreen = new WelcomeScreen();
+                welcomeScreen.setVisible(true);
+            });
+        });
+        searchPanel.add(homeButton);
         
         JLabel searchLabel = new JLabel("Search:");
         searchLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
@@ -344,7 +371,7 @@ public class VehicleRentalUI extends JFrame {
         photosTitle.setForeground(new Color(34, 40, 49)); // Primary Text
         photosTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
         
-        photoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16)); // 16px spacing (2 units)
+        photoPanel = new JPanel(new GridLayout(0, 2, 16, 16)); // 2 columns, auto rows, 16px spacing
         photoPanel.setBackground(Color.WHITE); // Panel Background #FFFFFF
         JScrollPane photoScroll = new JScrollPane(photoPanel);
         photoScroll.setBorder(BorderFactory.createEmptyBorder()); // Remove scroll pane border
@@ -870,7 +897,80 @@ public class VehicleRentalUI extends JFrame {
         ));
         infoCard.add(titlePanel, BorderLayout.NORTH);
         infoCard.add(infoTable, BorderLayout.CENTER);
-        infoCard.add(buttonPanel, BorderLayout.SOUTH);
+        
+        // Add description section if description exists
+        String description = vehicle.getDescription();
+        if (description != null && !description.isEmpty()) {
+            JPanel descPanel = new JPanel(new BorderLayout(0, 8));
+            descPanel.setBackground(Color.WHITE);
+            descPanel.setBorder(BorderFactory.createEmptyBorder(16, 0, 0, 0)); // Top margin
+            
+            JLabel descLabel = new JLabel("Description:");
+            descLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            descLabel.setForeground(new Color(107, 114, 128)); // Secondary Text
+            descPanel.add(descLabel, BorderLayout.NORTH);
+            
+            JTextArea descArea = new JTextArea(description);
+            descArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            descArea.setForeground(new Color(34, 40, 49)); // Primary Text
+            descArea.setLineWrap(true);
+            descArea.setWrapStyleWord(true);
+            descArea.setEditable(false);
+            descArea.setBackground(new Color(249, 250, 251)); // Light gray background
+            descArea.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(229, 231, 235), 1),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)
+            ));
+            descPanel.add(descArea, BorderLayout.CENTER);
+            
+            infoCard.add(descPanel, BorderLayout.SOUTH);
+        } else {
+            infoCard.add(buttonPanel, BorderLayout.SOUTH);
+        }
+        
+        // Move button panel below description or table
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setBackground(Color.WHITE);
+        if (description != null && !description.isEmpty()) {
+            bottomPanel.setBorder(BorderFactory.createEmptyBorder(16, 0, 0, 0));
+        }
+        bottomPanel.add(buttonPanel, BorderLayout.CENTER);
+        
+        // Add bottom panel to infoCard
+        if (description != null && !description.isEmpty()) {
+            JPanel centerWithDesc = new JPanel(new BorderLayout());
+            centerWithDesc.setBackground(Color.WHITE);
+            centerWithDesc.add(infoTable, BorderLayout.NORTH);
+            
+            JPanel descSection = new JPanel(new BorderLayout(0, 8));
+            descSection.setBackground(Color.WHITE);
+            descSection.setBorder(BorderFactory.createEmptyBorder(16, 0, 0, 0));
+            
+            JLabel descLabel = new JLabel("Description:");
+            descLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            descLabel.setForeground(new Color(107, 114, 128));
+            descSection.add(descLabel, BorderLayout.NORTH);
+            
+            JTextArea descArea = new JTextArea(description);
+            descArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            descArea.setForeground(new Color(34, 40, 49));
+            descArea.setLineWrap(true);
+            descArea.setWrapStyleWord(true);
+            descArea.setEditable(false);
+            descArea.setBackground(new Color(249, 250, 251));
+            descArea.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(229, 231, 235), 1),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)
+            ));
+            descSection.add(descArea, BorderLayout.CENTER);
+            
+            centerWithDesc.add(descSection, BorderLayout.CENTER);
+            
+            infoCard.add(centerWithDesc, BorderLayout.CENTER);
+            infoCard.add(bottomPanel, BorderLayout.SOUTH);
+        } else {
+            infoCard.add(buttonPanel, BorderLayout.SOUTH);
+        }
         
         // Add details at the top
         JPanel detailsSection = new JPanel(new BorderLayout());
@@ -921,7 +1021,13 @@ public class VehicleRentalUI extends JFrame {
             photoPanel.add(noPhotoLabel);
         } else {
             for (String path : photoPaths) {
-                File imgFile = new File("data/" + path);
+                // Handle both "photos/..." and "Data/photos/..." formats
+                File imgFile;
+                if (path.toLowerCase().startsWith("data/") || path.toLowerCase().startsWith("data\\")) {
+                    imgFile = new File(path);
+                } else {
+                    imgFile = new File("data/" + path);
+                }
                 
                 JPanel photoCard = new JPanel(new BorderLayout(0, 8)); // 8px spacing between image and caption
                 photoCard.setBorder(BorderFactory.createCompoundBorder(
@@ -976,12 +1082,6 @@ public class VehicleRentalUI extends JFrame {
                     noImgLabel.setBorder(BorderFactory.createDashedBorder(new Color(208, 215, 221), 2.0f, 4.0f, 4.0f, true)); // Dashed border #D0D7DD
                     photoCard.add(noImgLabel, BorderLayout.CENTER);
                 }
-                
-                // Caption below (filename)
-                JLabel pathLabel = new JLabel(new File(path).getName(), JLabel.CENTER);
-                pathLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11)); // Small helper: 11pt Regular
-                pathLabel.setForeground(new Color(107, 114, 128)); // Secondary Text #6B7280
-                photoCard.add(pathLabel, BorderLayout.SOUTH);
                 
                 photoPanel.add(photoCard);
             }
@@ -1337,6 +1437,12 @@ public class VehicleRentalUI extends JFrame {
             
             // Save customer data to CSV
             if (saveCustomerDataToCSV(fullName, nic, phone, address, license, email, vehicle)) {
+                // Update vehicle availability to "Booked"
+                updateVehicleAvailabilityInCSV(vehicle.getRegisterNumber(), "Booked");
+                
+                // Reload vehicle list to reflect the updated status
+                loadVehicles();
+                
                 // Success message
                 JOptionPane.showMessageDialog(dialog,
                     "Customer Details Submitted Successfully!\n\n" +
@@ -1345,7 +1451,8 @@ public class VehicleRentalUI extends JFrame {
                     "Phone: " + phone + "\n" +
                     "License: " + license + "\n" +
                     "Email: " + email + "\n\n" +
-                    "Vehicle: " + getVehicleModel(vehicle) + " (" + vehicle.getRegisterNumber() + ")",
+                    "Vehicle: " + getVehicleModel(vehicle) + " (" + vehicle.getRegisterNumber() + ")\n\n" +
+                    "Status: Booked",
                     "Success",
                     JOptionPane.INFORMATION_MESSAGE);
                 
@@ -1460,6 +1567,89 @@ public class VehicleRentalUI extends JFrame {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
+    }
+    
+    private void updateVehicleAvailabilityInCSV(String regNumber, String newAvailability) {
+        List<String> lines = new ArrayList<>();
+        
+        try (BufferedReader br = new BufferedReader(new FileReader("Data/vehicles.csv"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.startsWith(regNumber + ",")) {
+                    String[] parts = line.split(",", -1);
+                    if (parts.length >= 9) {
+                        // Update availability (column 8, index 8)
+                        parts[8] = newAvailability;
+                        line = String.join(",", parts);
+                    } else if (parts.length == 8) {
+                        // Add availability if it doesn't exist
+                        line = line + "," + newAvailability;
+                    }
+                }
+                lines.add(line);
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,
+                "Error reading vehicles CSV: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("Data/vehicles.csv"))) {
+            for (String line : lines) {
+                bw.write(line);
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,
+                "Error updating vehicle availability: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void updateVehicleLoadCapacityInCSV(String regNumber, String newLoad) {
+        List<String> lines = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader("Data/vehicles.csv"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.startsWith(regNumber + ",")) {
+                    String[] parts = line.split(",", -1);
+                    if (parts.length >= 7) {
+                        // Update load capacity (column index 6)
+                        parts[6] = newLoad;
+                        line = String.join(",", parts);
+                    } else {
+                        // Pad missing columns up to load capacity index
+                        java.util.List<String> partsList = new ArrayList<>(java.util.Arrays.asList(parts));
+                        while (partsList.size() < 7) partsList.add("");
+                        partsList.set(6, newLoad);
+                        line = String.join(",", partsList);
+                    }
+                }
+                lines.add(line);
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,
+                "Error reading vehicles CSV: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("Data/vehicles.csv"))) {
+            for (String ln : lines) {
+                bw.write(ln);
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,
+                "Error updating vehicle load capacity: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     public static void main(String[] args) {
@@ -1849,7 +2039,7 @@ class WelcomeScreen extends JFrame {
         DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 8; // Only Availability column is editable
+                return column == 5 || column == 6 || column == 8; // Seats, Load, and Availability columns are editable
             }
         };
         
@@ -1869,13 +2059,44 @@ class WelcomeScreen extends JFrame {
         availabilityCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         vehicleTable.getColumnModel().getColumn(8).setCellEditor(new DefaultCellEditor(availabilityCombo));
         
-        // Add listener to save changes to CSV when availability is updated
+        // Add listener to save changes to CSV when columns are updated
         tableModel.addTableModelListener(e -> {
-            if (e.getColumn() == 8 && e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
+            if (e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
                 int row = e.getFirstRow();
+                int column = e.getColumn();
                 String regNumber = (String) tableModel.getValueAt(row, 0);
-                String newAvailability = (String) tableModel.getValueAt(row, 8);
-                updateVehicleAvailabilityInCSV(regNumber, newAvailability);
+                
+                if (column == 8) {
+                    // Availability column updated
+                    String newAvailability = (String) tableModel.getValueAt(row, 8);
+                    updateVehicleAvailabilityInCSV(regNumber, newAvailability);
+                } else if (column == 5) {
+                    // Seats column updated
+                    String newSeats = String.valueOf(tableModel.getValueAt(row, 5));
+                    if (newSeats.equals("-") || newSeats.trim().isEmpty()) {
+                        newSeats = "";
+                    }
+                    final String finalSeats = newSeats;
+                    final int finalRow = row;
+                    updateVehicleSeatingCapacityInCSV(regNumber, finalSeats);
+                    // Refresh this row to show the updated value
+                    SwingUtilities.invokeLater(() -> {
+                        tableModel.setValueAt(finalSeats.isEmpty() ? "-" : finalSeats, finalRow, 5);
+                    });
+                } else if (column == 6) {
+                    // Load column updated
+                    String newLoad = String.valueOf(tableModel.getValueAt(row, 6));
+                    if (newLoad.equals("-") || newLoad.trim().isEmpty()) {
+                        newLoad = "";
+                    }
+                    final String finalLoad = newLoad;
+                    final int finalRow = row;
+                    updateVehicleLoadCapacityInCSV(regNumber, finalLoad);
+                    // Refresh this row to show the updated value
+                    SwingUtilities.invokeLater(() -> {
+                        tableModel.setValueAt(finalLoad.isEmpty() ? "-" : finalLoad, finalRow, 6);
+                    });
+                }
             }
         });
         
@@ -2084,7 +2305,7 @@ class WelcomeScreen extends JFrame {
     private void showAddVehicleDialog(JFrame parentFrame, DefaultTableModel tableModel, 
                                        List<Object[]> allVehiclesData, JTextField searchField) {
         JDialog dialog = new JDialog(parentFrame, "Add New Vehicle", true);
-        dialog.setSize(700, 650);
+        dialog.setSize(700, 750);
         dialog.setLocationRelativeTo(parentFrame);
         
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
@@ -2177,8 +2398,28 @@ class WelcomeScreen extends JFrame {
         JTextField loadField = createStyledInputField("For Lorries only");
         formPanel.add(loadField, gbc);
         
-        // Availability
+        // Description
         gbc.gridx = 0; gbc.gridy = 7;
+        JLabel descLabel = new JLabel("Description:");
+        descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        descLabel.setVerticalAlignment(JLabel.TOP);
+        formPanel.add(descLabel, gbc);
+        
+        gbc.gridx = 1;
+        JTextArea descArea = new JTextArea(4, 20);
+        descArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        descArea.setLineWrap(true);
+        descArea.setWrapStyleWord(true);
+        descArea.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(229, 231, 235), 1),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        JScrollPane descScrollPane = new JScrollPane(descArea);
+        descScrollPane.setPreferredSize(new Dimension(300, 90));
+        formPanel.add(descScrollPane, gbc);
+        
+        // Availability
+        gbc.gridx = 0; gbc.gridy = 8;
         JLabel availabilityLabel = new JLabel("Availability:");
         availabilityLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         formPanel.add(availabilityLabel, gbc);
@@ -2191,7 +2432,7 @@ class WelcomeScreen extends JFrame {
         formPanel.add(availabilityCombo, gbc);
         
         // Photos
-        gbc.gridx = 0; gbc.gridy = 8;
+        gbc.gridx = 0; gbc.gridy = 9;
         JLabel photosLabel = new JLabel("Photos:");
         photosLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         formPanel.add(photosLabel, gbc);
@@ -2288,6 +2529,7 @@ class WelcomeScreen extends JFrame {
             String doors = doorsField.getText().trim();
             String seats = seatsField.getText().trim();
             String load = loadField.getText().trim();
+            String description = descArea.getText().trim();
             String availability = (String) availabilityCombo.getSelectedItem();
             
             // Copy photos to Data/photos directory
@@ -2299,7 +2541,7 @@ class WelcomeScreen extends JFrame {
                 }
             }
             
-            addVehicleToCSV(regNumber, color, type, model, doors, seats, load, photoPathsString, availability);
+            addVehicleToCSV(regNumber, color, type, model, doors, seats, load, photoPathsString, availability, description);
             tableModel.setRowCount(0);
             allVehiclesData.clear();
             loadVehiclesFromCSV(tableModel, allVehiclesData);
@@ -2363,7 +2605,7 @@ class WelcomeScreen extends JFrame {
     }
     
     private void addVehicleToCSV(String regNumber, String color, String type, String model,
-                                  String doors, String seats, String load, String photoPaths, String availability) {
+                                  String doors, String seats, String load, String photoPaths, String availability, String description) {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter("Data/vehicles.csv", true))) {
             StringBuilder line = new StringBuilder();
             line.append(regNumber).append(",");
@@ -2371,23 +2613,39 @@ class WelcomeScreen extends JFrame {
             line.append(type).append(",");
             line.append(model).append(",");
             
-            // Add type-specific fields
+            // CSV format: regNumber,color,type,model,numberOfDoors,seatingCapacity,loadCapacity,photoPaths,availability
+            // Add fields in correct order based on vehicle type
             if (type.equals("Car")) {
-                line.append(doors.isEmpty() ? "" : doors).append(",,,");
+                line.append(doors.isEmpty() ? "" : doors).append(",");  // numberOfDoors
+                line.append(",");  // seatingCapacity (empty for cars)
+                line.append(",");  // loadCapacity (empty for cars)
             } else if (type.equals("Van")) {
-                line.append(",").append(seats.isEmpty() ? "" : seats).append(",,");
+                line.append(",");  // numberOfDoors (empty for vans)
+                line.append(seats.isEmpty() ? "" : seats).append(",");  // seatingCapacity
+                line.append(",");  // loadCapacity (empty for vans)
             } else if (type.equals("Lorry")) {
-                line.append(",,").append(load.isEmpty() ? "" : load).append(",");
+                line.append(",");  // numberOfDoors (empty for lorries)
+                line.append(",");  // seatingCapacity (empty for lorries)
+                line.append(load.isEmpty() ? "" : load).append(",");  // loadCapacity
             } else if (type.equals("Bus")) {
-                line.append(",").append(seats.isEmpty() ? "" : seats).append(",,");
+                line.append(",");  // numberOfDoors (empty for buses)
+                line.append(seats.isEmpty() ? "" : seats).append(",");  // seatingCapacity
+                line.append(",");  // loadCapacity (empty for buses)
+            } else if (type.equals("Bike")) {
+                line.append(",");  // numberOfDoors (empty for bikes)
+                line.append(",");  // seatingCapacity (empty for bikes)
+                line.append(",");  // loadCapacity (empty for bikes)
             } else {
-                line.append(",,,");
+                line.append(",,,");  // All empty for unknown types
             }
             
             line.append(photoPaths).append(",");
-            line.append(availability);
-            line.append("\n");
+            line.append(availability).append(",");
+            // Escape newlines and quotes in description for CSV
+            String escapedDesc = description.replace("\n", "\\n").replace("\r", "");
+            line.append(escapedDesc);
             bw.write(line.toString());
+            bw.newLine();
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null,
                 "Error adding vehicle to CSV: " + e.getMessage(),
@@ -2462,6 +2720,106 @@ class WelcomeScreen extends JFrame {
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null,
                 "Error updating vehicle availability: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void updateVehicleSeatingCapacityInCSV(String regNumber, String newSeats) {
+        List<String> lines = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader("Data/vehicles.csv"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.startsWith(regNumber + ",")) {
+                    String[] parts = line.split(",", -1);
+                    if (parts.length >= 6) {
+                        // Update seating capacity (column index 5)
+                        parts[5] = newSeats;
+                        line = String.join(",", parts);
+                    } else {
+                        // Pad missing columns up to seating capacity index
+                        java.util.List<String> partsList = new ArrayList<>(java.util.Arrays.asList(parts));
+                        while (partsList.size() < 6) partsList.add("");
+                        partsList.set(5, newSeats);
+                        line = String.join(",", partsList);
+                    }
+                }
+                lines.add(line);
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,
+                "Error reading vehicles CSV: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("Data/vehicles.csv"))) {
+            for (String ln : lines) {
+                bw.write(ln);
+                bw.newLine();
+            }
+            // Show success message
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(null,
+                    "Seating capacity updated successfully for " + regNumber,
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+            });
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,
+                "Error updating vehicle seating capacity: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void updateVehicleLoadCapacityInCSV(String regNumber, String newLoad) {
+        List<String> lines = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader("Data/vehicles.csv"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.startsWith(regNumber + ",")) {
+                    String[] parts = line.split(",", -1);
+                    if (parts.length >= 7) {
+                        // Update load capacity (column index 6)
+                        parts[6] = newLoad;
+                        line = String.join(",", parts);
+                    } else {
+                        // Pad missing columns up to load capacity index
+                        java.util.List<String> partsList = new ArrayList<>(java.util.Arrays.asList(parts));
+                        while (partsList.size() < 7) partsList.add("");
+                        partsList.set(6, newLoad);
+                        line = String.join(",", partsList);
+                    }
+                }
+                lines.add(line);
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,
+                "Error reading vehicles CSV: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("Data/vehicles.csv"))) {
+            for (String ln : lines) {
+                bw.write(ln);
+                bw.newLine();
+            }
+            // Show success message
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(null,
+                    "Load capacity updated successfully for " + regNumber,
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+            });
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,
+                "Error updating vehicle load capacity: " + e.getMessage(),
                 "Error",
                 JOptionPane.ERROR_MESSAGE);
         }

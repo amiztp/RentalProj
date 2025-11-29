@@ -19,6 +19,7 @@ public class Vehicle implements Serializable {
 
     private String registerNumber;
     private String color;
+    private String description;
 
     private final List<String> photoPaths = new ArrayList<>();
 
@@ -63,6 +64,14 @@ public class Vehicle implements Serializable {
 
     public void setColor(String color) {
         this.color = requireNonBlank(color, "color");
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     /* ----------------- Photo methods ----------------- */

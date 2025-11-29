@@ -99,6 +99,13 @@ public class VehicleRepository {
                     }
                 }
 
+                // Load description (column 9) if available
+                if (parts.length > 9 && !parts[9].trim().isEmpty()) {
+                    // Unescape newlines from CSV
+                    String desc = parts[9].trim().replace("\\n", "\n");
+                    vehicle.setDescription(desc);
+                }
+
                 vehicles.add(vehicle);
             }
 

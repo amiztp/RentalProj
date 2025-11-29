@@ -1,7 +1,6 @@
-regNumber,color,type,model,numberOfDoors,seatingCapacity,loadCapacity,photoPaths,availability
-VAN-100,Blue,Van,Urvan,,8,,photos/VAN-100-side.jpg,Maintaining
-LORRY-555,Black,Lorry,FordLorry,,,5000,photos/LORRY-555-1.jpg,Booked
-CAR-002,Silver,Car,Camry,4,,,photos/CAR-002-CAMRY.jpg,Available
-CAR-003,Blue,Car,HondaCivic,4,,,photos/CAR-003-HONDA.jpg,Available
-BIKE-888,Green,Bike,Ninja,,,,photos/BIKE-888-1.jpg,Available
-CAR-004,Blue,Car,Toyota,4,,,,Maintaining,Available
+regNumber,color,type,model,numberOfDoors,seatingCapacity,loadCapacity,photoPaths,availability,description
+CAR-0099,Blue,Car,Ford F-150,4,,,Data/photos/CAR_0099_1.jpg|Data/photos/CAR_0099_2.jpg|Data/photos/CAR_0099_3.jpg|Data/photos/CAR_0099_4.jpg,Booked,3.5L EcoBoost V6 / 5.0L V8 \n 4×4 \nCrew Cab \n off-road \nDual custom performance exhaust
+BIK-2297,Black,Bike,Harley-Davidson,,,,Data/photos/BIK_2297_1.jpg|Data/photos/BIK_2297_2.jpg|Data/photos/BIK_2297_3.jpg|Data/photos/BIK_2297_4.jpg|Data/photos/BIK_2297_5.jpg,Available,Milwaukee-Eight V-Twin~1868cc (114) \n Dual custom performance exhaust \n Dual front disc brakes with ABS \n Wide rear performance tyre - small discription
+LOR-0001,White,Lorry,Isuzu FSR,,,12000,Data/photos/LOR_0001_1.jpg|Data/photos/LOR_0001_2.jpg|Data/photos/LOR_0001_3.jpg,Maintaining,5.2L 4HK1-TC turbo-diesel\n 6-speed manual or automatic\n 3-seat cab-over design\n Box/van body
+VAN-1001,Black,Van,Mercedes-Benz Sprinter,,10,,Data/photos/VAN_1001_1.jpg|Data/photos/VAN_1001_2.jpg|Data/photos/VAN_1001_3.jpg|Data/photos/VAN_1001_4.jpg,Available,3.0L V6 turbo-diesel \n RWD / AWD\n High-roof extended body\n Large sliding side door \n tinted windows \n premium cabin finish
+BUS-9899,Gray,Bus,Scania Touring,,60,,Data/photos/BUS_9899_1.jpg|Data/photos/BUS_9899_2.jpg|Data/photos/BUS_9899_3.jpg,Available,13.0L Scania Euro 6 diesel \n Scania Opticruise automated gearbox \n High-floor luxury coach\n Large luggage bays \n air suspension\n panoramic glass \n LED lighting
