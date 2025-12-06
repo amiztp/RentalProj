@@ -257,7 +257,23 @@ public class PaymentsUI {
                     JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            
+            // If CSV contains a stored date/time, compare the date part
+            if (customerData.length >= 8) {
+                String storedTimestamp = customerData[7];
+                String storedDateOnly = formatDateTime(storedTimestamp);
+                // Normalize both sides to ISO date (yyyy-MM-dd) for comparison
+                String enteredDateOnly = dateStr;
+
+                if (!enteredDateOnly.equals(storedDateOnly)) {
+                    JOptionPane.showMessageDialog(inputDialog,
+                        "Entered date does not match the record for NIC: " + nic + "\n" +
+                        "Recorded date: " + storedDateOnly + "\nEntered date: " + enteredDateOnly,
+                        "Date Mismatch",
+                        JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+            }
+
             nicNumber[0] = nic;
             date[0] = dateStr;
             inputDialog.dispose();
@@ -1168,13 +1184,17 @@ public class PaymentsUI {
                 // CSV format: Full Name,NIC,Phone,Address,License Number,Email,Vehicle Model,Vehicle Registration,Date Time
                 if (fields.length >= 6) {
                     String csvNic = fields[1].trim();
-                    
+
                     // Check if NIC matches
                     if (csvNic.equalsIgnoreCase(nic)) {
-                        // Return customer data: fullName, nic, phone, address, licenseNumber, email, regNumber
+                        // Return customer data: fullName, nic, phone, address, licenseNumber, email, regNumber, dateTime
                         String regNumber = "";
+                        String dateTime = "";
                         if (fields.length >= 8) {
                             regNumber = fields[7].trim();  // Vehicle Registration Number
+                        }
+                        if (fields.length >= 9) {
+                            dateTime = fields[8].trim();   // Date Time
                         }
                         return new String[] {
                             fields[0].trim(),  // Full Name
@@ -1183,7 +1203,8 @@ public class PaymentsUI {
                             fields[3].trim(),  // Address
                             fields[4].trim(),  // License Number
                             fields[5].trim(),  // Email
-                            regNumber          // Vehicle Registration Number
+                            regNumber,         // Vehicle Registration Number
+                            dateTime           // Date Time
                         };
                     }
                 }

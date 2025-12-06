@@ -36,6 +36,254 @@ public class VehicleRentalUI extends JFrame {
         showDefaultLogo();
         loadVehicles();
     }
+
+    // --- Helper classes and methods for reports ---
+    private static class CustomerEntry {
+        String nic;
+        java.time.LocalDateTime dateTime;
+        String vehicleType;
+    }
+
+    private static class PaymentEntry {
+        String nic;
+        double amount;
+        java.time.LocalDateTime timestamp;
+    }
+
+    private java.util.List<CustomerEntry> loadCustomerEntries() {
+        java.util.List<CustomerEntry> list = new java.util.ArrayList<>();
+        java.io.File f = new java.io.File("Data/Customerdata.csv");
+        if (!f.exists()) return list;
+
+        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(f))) {
+            String line;
+            boolean first = true;
+            while ((line = br.readLine()) != null) {
+                if (first) { first = false; continue; }
+                if (line.trim().isEmpty()) continue;
+                String[] fields = parseCSVLine(line);
+                // Expect at least 9 fields now (we appended Vehicle Type)
+                if (fields.length < 9) continue;
+
+                CustomerEntry ce = new CustomerEntry();
+                ce.nic = fields[1].trim();
+                String dateStr = fields.length >= 9 ? fields[8].trim() : "";
+                ce.vehicleType = fields.length >= 10 ? fields[9].trim() : "";
+
+                ce.dateTime = parseDateTimeFlexible(dateStr);
+                list.add(ce);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to read Customerdata.csv: " + e.getMessage());
+        }
+
+        return list;
+    }
+
+    /**
+     * Parse a CSV line handling quoted fields.
+     */
+    private String[] parseCSVLine(String line) {
+        java.util.List<String> fields = new java.util.ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (c == '"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    current.append('"');
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (c == ',' && !inQuotes) {
+                fields.add(current.toString());
+                current = new StringBuilder();
+            } else {
+                current.append(c);
+            }
+        }
+        fields.add(current.toString());
+        return fields.toArray(new String[0]);
+    }
+
+    private java.util.List<PaymentEntry> loadPaymentEntries() {
+        java.util.List<PaymentEntry> list = new java.util.ArrayList<>();
+        java.io.File f = new java.io.File("Data/payments.csv");
+        if (!f.exists()) return list;
+
+        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(f))) {
+            String line;
+            String header = br.readLine();
+            if (header == null) return list;
+            String[] headers = parseCSVLine(header);
+            java.util.Map<String,Integer> idx = new java.util.HashMap<>();
+            for (int i = 0; i < headers.length; i++) idx.put(headers[i].trim().toLowerCase(), i);
+
+            while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+                String[] fields = parseCSVLine(line);
+
+                PaymentEntry pe = new PaymentEntry();
+                // try to locate nic and amount and timestamp by header names
+                if (idx.containsKey("nic")) {
+                    int i = idx.get("nic"); if (i < fields.length) pe.nic = fields[i].trim();
+                }
+                if (idx.containsKey("amount")) {
+                    int i = idx.get("amount"); if (i < fields.length) {
+                        try { pe.amount = Double.parseDouble(fields[i].trim()); } catch (Exception ex) { pe.amount = 0; }
+                    }
+                } else if (fields.length >= 8) { // fallback common position
+                    try { pe.amount = Double.parseDouble(fields[7].trim()); } catch (Exception ex) { pe.amount = 0; }
+                }
+                if (idx.containsKey("timestamp")) {
+                    int i = idx.get("timestamp"); if (i < fields.length) pe.timestamp = parseDateTimeFlexible(fields[i].trim());
+                } else if (fields.length >= 10) {
+                    pe.timestamp = parseDateTimeFlexible(fields[9].trim());
+                }
+
+                list.add(pe);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to read payments.csv: " + e.getMessage());
+        }
+
+        return list;
+    }
+
+    private java.time.LocalDateTime parseDateTimeFlexible(String s) {
+        if (s == null || s.isEmpty()) return null;
+        s = s.trim();
+        // Try ISO
+        try { return java.time.LocalDateTime.parse(s); } catch (Exception e) {}
+        // Try common formatter yyyy-MM-dd HH:mm:ss
+        try {
+            java.time.format.DateTimeFormatter f = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            return java.time.LocalDateTime.parse(s, f);
+        } catch (Exception e) {}
+        // Try date only
+        try {
+            java.time.LocalDate d = java.time.LocalDate.parse(s);
+            return d.atStartOfDay();
+        } catch (Exception e) {}
+        return null;
+    }
+
+    private JPanel createBarChartPanel(String title, java.util.Map<String, Integer> data) {
+        return new JPanel(new BorderLayout()) {
+            {
+                setBackground(Color.WHITE);
+                setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(230,230,230)),
+                    BorderFactory.createEmptyBorder(8,8,8,8)));
+                add(new JLabel(title, SwingConstants.CENTER), BorderLayout.NORTH);
+                add(new BarChartPanelInt(data), BorderLayout.CENTER);
+            }
+        };
+    }
+
+    private JPanel createBarChartPanelDouble(String title, java.util.Map<String, Double> data) {
+        return new JPanel(new BorderLayout()) {
+            {
+                setBackground(Color.WHITE);
+                setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(230,230,230)),
+                    BorderFactory.createEmptyBorder(8,8,8,8)));
+                add(new JLabel(title, SwingConstants.CENTER), BorderLayout.NORTH);
+                add(new BarChartPanelDouble(data), BorderLayout.CENTER);
+            }
+        };
+    }
+
+    // Simple integer bar chart panel
+    private static class BarChartPanelInt extends JPanel {
+        private java.util.Map<String,Integer> data;
+        BarChartPanelInt(java.util.Map<String,Integer> data) { this.data = data; setBackground(Color.WHITE); }
+        @Override protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            if (data == null || data.isEmpty()) {
+                g2.setColor(Color.GRAY);
+                g2.drawString("No data", 10, 20);
+                return;
+            }
+
+            int w = getWidth(); int h = getHeight();
+            int padding = 30; int availableW = w - padding*2; int availableH = h - padding*2;
+
+            java.util.List<String> keys = new java.util.ArrayList<>(data.keySet());
+            int n = keys.size();
+            int max = 1; for (int v : data.values()) if (v > max) max = v;
+
+            int barWidth = Math.max(10, availableW / Math.max(1,n) - 10);
+            int x = padding;
+            int i = 0;
+            for (String k : keys) {
+                int val = data.get(k);
+                int barH = (int) ((val / (double) max) * (availableH - 40));
+                int y = padding + (availableH - barH);
+
+                g2.setColor(new Color(11,111,175));
+                g2.fillRect(x, y, barWidth, barH);
+                g2.setColor(Color.DARK_GRAY);
+                g2.drawString(String.valueOf(val), x, y - 6);
+
+                // label
+                g2.setColor(Color.BLACK);
+                String label = k;
+                int labelY = padding + availableH + 14;
+                g2.drawString(label, x, labelY);
+
+                x += barWidth + 10; i++;
+            }
+        }
+    }
+
+    // Simple double bar chart for amounts
+    private static class BarChartPanelDouble extends JPanel {
+        private java.util.Map<String,Double> data;
+        BarChartPanelDouble(java.util.Map<String,Double> data) { this.data = data; setBackground(Color.WHITE); }
+        @Override protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            if (data == null || data.isEmpty()) {
+                g2.setColor(Color.GRAY);
+                g2.drawString("No data", 10, 20);
+                return;
+            }
+
+            int w = getWidth(); int h = getHeight();
+            int padding = 30; int availableW = w - padding*2; int availableH = h - padding*2;
+
+            java.util.List<String> keys = new java.util.ArrayList<>(data.keySet());
+            int n = keys.size();
+            double max = 1; for (double v : data.values()) if (v > max) max = v;
+
+            int barWidth = Math.max(10, availableW / Math.max(1,n) - 10);
+            int x = padding;
+            for (String k : keys) {
+                double val = data.get(k);
+                int barH = (int) ((val / max) * (availableH - 40));
+                int y = padding + (availableH - barH);
+
+                g2.setColor(new Color(46,125,50));
+                g2.fillRect(x, y, barWidth, barH);
+                g2.setColor(Color.DARK_GRAY);
+                g2.drawString(String.format("%.0f", val), x, y - 6);
+
+                // label
+                g2.setColor(Color.BLACK);
+                int labelY = padding + availableH + 14;
+                g2.drawString(k, x, labelY);
+
+                x += barWidth + 10;
+            }
+        }
+    }
     
     private void initializeUI() {
         setTitle("Drive Smart - Vehicle Rental Management");
@@ -403,146 +651,51 @@ public class VehicleRentalUI extends JFrame {
     }
     
     private JButton createPrimaryButton(String text) {
-        RoundedButton button = new RoundedButton(text, 12);
+        JButton button = new JButton(text);
         button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         button.setBackground(new Color(11, 111, 175)); // #0B6FAF
         button.setForeground(Color.WHITE);
-        button.setPreferredSize(new Dimension(button.getPreferredSize().width + 48, 40)); // 24px horizontal padding each side
+        button.setPreferredSize(new Dimension(160, 40));
         button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setContentAreaFilled(false);
+        button.setBorder(BorderFactory.createEmptyBorder(8, 24, 8, 24));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
+
         button.addMouseListener(new MouseAdapter() {
+            @Override
             public void mouseEntered(MouseEvent e) {
                 button.setBackground(new Color(9, 74, 122)); // Hover: #094A7A
-                button.repaint();
             }
+
+            @Override
             public void mouseExited(MouseEvent e) {
                 button.setBackground(new Color(11, 111, 175));
-                button.repaint();
-            }
-            public void mousePressed(MouseEvent e) {
-                button.setBackground(new Color(6, 53, 87)); // Pressed: #063557
-                button.repaint();
-            }
-            public void mouseReleased(MouseEvent e) {
-                button.setBackground(new Color(9, 74, 122));
-                button.repaint();
             }
         });
-        
+
         return button;
     }
-    
-    private JButton createSecondaryButton(String text) {
-        RoundedButton button = new RoundedButton(text, 12);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 13)); // Semibold 13
-        button.setBackground(Color.WHITE); // #FFFFFF
-        button.setForeground(new Color(11, 111, 175)); // Text: #0B6FAF
-        button.setPreferredSize(new Dimension(button.getPreferredSize().width + 48, 40));
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setContentAreaFilled(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setBorderColor(new Color(215, 222, 230)); // Border: 1px solid #D7DEE6
-        
-        button.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                button.setBackground(new Color(238, 247, 255)); // Hover: #EEF7FF
-                button.repaint();
-            }
-            public void mouseExited(MouseEvent e) {
-                button.setBackground(Color.WHITE);
-                button.repaint();
-            }
-            public void mousePressed(MouseEvent e) {
-                button.setBackground(new Color(217, 237, 255)); // Pressed: #D9EDFF
-                button.repaint();
-            }
-            public void mouseReleased(MouseEvent e) {
-                button.setBackground(new Color(238, 247, 255));
-                button.repaint();
-            }
-        });
-        
-        return button;
-    }
-    
+
     private JButton createExitButton(String text) {
-        RoundedButton button = new RoundedButton(text, 12);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        button.setBackground(new Color(231, 76, 60)); // #E74C3C
-        button.setForeground(Color.WHITE);
-        button.setPreferredSize(new Dimension(button.getPreferredSize().width + 48, 40));
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setContentAreaFilled(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        button.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                button.setBackground(new Color(192, 57, 43)); // Hover: #C0392B
-                button.repaint();
-            }
-            public void mouseExited(MouseEvent e) {
-                button.setBackground(new Color(231, 76, 60));
-                button.repaint();
-            }
-            public void mousePressed(MouseEvent e) {
-                button.setBackground(new Color(146, 43, 33)); // Pressed: #922B21
-                button.repaint();
-            }
-            public void mouseReleased(MouseEvent e) {
-                button.setBackground(new Color(192, 57, 43));
-                button.repaint();
-            }
-        });
-        
-        return button;
+        JButton btn = createPrimaryButton(text);
+        btn.setPreferredSize(new Dimension(120, 40));
+        return btn;
     }
-    
-    // Custom RoundedButton class for rounded corners
-    class RoundedButton extends JButton {
-        private int cornerRadius;
-        private Color borderColor;
-        
-        public RoundedButton(String text, int radius) {
-            super(text);
-            this.cornerRadius = radius;
-            this.borderColor = null;
-        }
-        
-        public void setBorderColor(Color color) {
-            this.borderColor = color;
-        }
-        
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            
-            // Paint background
-            g2.setColor(getBackground());
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), cornerRadius, cornerRadius);
-            
-            // Paint border if specified
-            if (borderColor != null) {
-                g2.setColor(borderColor);
-                g2.setStroke(new BasicStroke(1));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, cornerRadius, cornerRadius);
-            }
-            
-            g2.dispose();
-            
-            // Paint text
-            super.paintComponent(g);
-        }
-        
-        @Override
-        protected void paintBorder(Graphics g) {
-            // Custom border painting handled in paintComponent
-        }
+
+    private JButton createSecondaryButton(String text) {
+        Color bg = new Color(107, 114, 128);
+        JButton button = new JButton(text);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setBackground(bg);
+        button.setForeground(Color.WHITE);
+        button.setPreferredSize(new Dimension(120, 40));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) { button.setBackground(new Color(86, 90, 97)); }
+            @Override public void mouseExited(MouseEvent e) { button.setBackground(bg); }
+        });
+        return button;
     }
     
     private JTextField createStyledTextField() {
@@ -686,6 +839,18 @@ public class VehicleRentalUI extends JFrame {
         if (v instanceof Lorry) return ((Lorry) v).getModel();
         if (v instanceof Bus) return ((Bus) v).getModel();
         return "Unknown";
+    }
+
+    private String getVehicleType(Vehicle v) {
+        if (v == null) return "Unknown";
+        // Prefer a human-friendly type name
+        if (v instanceof Car) return "Car";
+        if (v instanceof Van) return "Van";
+        if (v instanceof Bike) return "Bike";
+        if (v instanceof Lorry) return "Lorry";
+        if (v instanceof Bus) return "Bus";
+        // Fallback to class simple name
+        return v.getClass().getSimpleName();
     }
     
     private Vehicle findVehicleByTypeAndModel(String type, String model) {
@@ -1524,7 +1689,7 @@ public class VehicleRentalUI extends JFrame {
             
             // Write header if file is new or empty
             if (!fileExists || csvFile.length() == 0) {
-                bw.write("Full Name,NIC,Phone,Address,License Number,Email,Vehicle Model,Vehicle Registration,Date Time");
+                bw.write("Full Name,NIC,Phone,Address,License Number,Email,Vehicle Model,Vehicle Registration,Date Time,Vehicle Type");
                 bw.newLine();
             }
             
@@ -1534,7 +1699,7 @@ public class VehicleRentalUI extends JFrame {
             String dateTime = now.format(formatter);
             
             // Write customer data
-            String line = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s",
+            String line = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
                 escapeCsv(fullName),
                 escapeCsv(nic),
                 escapeCsv(phone),
@@ -1544,6 +1709,8 @@ public class VehicleRentalUI extends JFrame {
                 escapeCsv(getVehicleModel(vehicle)),
                 escapeCsv(vehicle.getRegisterNumber()),
                 dateTime
+                ,
+                escapeCsv(getVehicleType(vehicle))
             );
             
             bw.write(line);
@@ -1988,9 +2155,15 @@ class WelcomeScreen extends JFrame {
         manageVehiclesButton.addActionListener(e -> {
             showManageVehiclesInterface(dashboardFrame);
         });
+
+        // Reports button (blue, opens date-range dialog)
+        JButton reportsButton = createStyledButton("Reports", new Color(11, 111, 175));
+        reportsButton.setToolTipText("Open reports - choose date range");
+        reportsButton.addActionListener(e -> showReportsWindow(dashboardFrame));
         
         buttonPanel.add(paymentsButton);
         buttonPanel.add(manageVehiclesButton);
+        buttonPanel.add(reportsButton);
         
         gbc.gridy = 3;
         gbc.insets = new Insets(0, 0, 20, 0);
@@ -2204,6 +2377,80 @@ class WelcomeScreen extends JFrame {
         
         manageFrame.add(mainPanel);
         manageFrame.setVisible(true);
+    }
+
+    private void showReportsWindow(JFrame parentFrame) {
+        // Integrated reports window: date selectors + reports in one frame
+        JFrame frame = new JFrame("Drive Smart - Reports");
+        frame.setSize(920, 620);
+        frame.setLocationRelativeTo(parentFrame);
+        frame.setLayout(new BorderLayout());
+
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 12));
+        topPanel.setBackground(Color.WHITE);
+
+        JLabel lblFrom = new JLabel("From:"); lblFrom.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        javax.swing.SpinnerDateModel fromModel = new javax.swing.SpinnerDateModel(new java.util.Date(), null, null, java.util.Calendar.DAY_OF_MONTH);
+        JSpinner fromSpinner = new JSpinner(fromModel);
+        fromSpinner.setEditor(new JSpinner.DateEditor(fromSpinner, "yyyy-MM-dd"));
+        fromSpinner.setPreferredSize(new Dimension(140, 28));
+
+        JLabel lblTo = new JLabel("To:"); lblTo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        javax.swing.SpinnerDateModel toModel = new javax.swing.SpinnerDateModel(new java.util.Date(), null, null, java.util.Calendar.DAY_OF_MONTH);
+        JSpinner toSpinner = new JSpinner(toModel);
+        toSpinner.setEditor(new JSpinner.DateEditor(toSpinner, "yyyy-MM-dd"));
+        toSpinner.setPreferredSize(new Dimension(140, 28));
+
+        JButton btnGenerate = createStyledButton("Generate", new Color(11, 111, 175));
+        btnGenerate.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnGenerate.setPreferredSize(new Dimension(120, 34));
+
+        JButton btnClose = createStyledButton("Close", new Color(107, 114, 128));
+        btnClose.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnClose.setPreferredSize(new Dimension(120, 34));
+
+        topPanel.add(lblFrom); topPanel.add(fromSpinner);
+        topPanel.add(lblTo); topPanel.add(toSpinner);
+        topPanel.add(btnGenerate); topPanel.add(btnClose);
+
+        // Reports container - will hold the charts panel
+        JPanel reportsContainer = new JPanel(new BorderLayout());
+        reportsContainer.setBackground(Color.WHITE);
+        reportsContainer.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
+        frame.add(topPanel, BorderLayout.NORTH);
+        frame.add(reportsContainer, BorderLayout.CENTER);
+
+        // Default: show last 30 days
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate fromDateDefault = today.minusDays(30);
+        fromSpinner.setValue(java.util.Date.from(fromDateDefault.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()));
+        toSpinner.setValue(java.util.Date.from(today.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()));
+
+        // Generate and place reports panel
+        Runnable generateAction = () -> {
+            java.util.Date f = (java.util.Date) fromSpinner.getValue();
+            java.util.Date t = (java.util.Date) toSpinner.getValue();
+            java.time.LocalDateTime fromLdt = java.time.LocalDateTime.ofInstant(f.toInstant(), java.time.ZoneId.systemDefault()).withHour(0).withMinute(0).withSecond(0).withNano(0);
+            java.time.LocalDateTime toLdt = java.time.LocalDateTime.ofInstant(t.toInstant(), java.time.ZoneId.systemDefault()).withHour(23).withMinute(59).withSecond(59).withNano(999_999_999);
+            if (fromLdt.isAfter(toLdt)) {
+                JOptionPane.showMessageDialog(frame, "From date must be on or before To date.", "Invalid Range", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            JPanel panel = ReportsUtil.createReportsPanel(fromLdt, toLdt);
+            reportsContainer.removeAll();
+            reportsContainer.add(panel, BorderLayout.CENTER);
+            reportsContainer.revalidate(); reportsContainer.repaint();
+        };
+
+        btnGenerate.addActionListener(e -> generateAction.run());
+        btnClose.addActionListener(e -> frame.dispose());
+
+        // Generate initial view
+        generateAction.run();
+
+        frame.setVisible(true);
     }
     
     private void loadVehiclesFromCSV(DefaultTableModel tableModel, List<Object[]> allVehiclesData) {
