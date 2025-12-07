@@ -676,9 +676,16 @@ public class VehicleRentalUI extends JFrame {
     }
 
     private JButton createExitButton(String text) {
-        JButton btn = createPrimaryButton(text);
-        btn.setPreferredSize(new Dimension(120, 40));
-        return btn;
+        JButton button = new JButton(text);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setBackground(new Color(239, 68, 68)); // Red color for exit
+        button.setForeground(Color.WHITE);
+        button.setPreferredSize(new Dimension(120, 40));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(8, 24, 8, 24));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        return button;
     }
 
     private JButton createSecondaryButton(String text) {
@@ -701,7 +708,7 @@ public class VehicleRentalUI extends JFrame {
     private JTextField createStyledTextField() {
         JTextField textField = new JTextField();
         textField.setFont(new Font("Segoe UI", Font.PLAIN, 14)); // Body: 14pt Regular
-        textField.setBackground(Color.WHITE); // Background #FFFFFF
+        textField.setBackground(Color.WHITE); // Background #4751e9ff
         textField.setForeground(new Color(34, 40, 49)); // Primary Text #222831
         textField.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(215, 222, 230), 8, true), // Border #D7DEE6, 8px radius
